@@ -210,6 +210,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ai_utils"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "async-openai",
+ "async-trait",
+ "base64 0.22.1",
+ "chrono",
+ "dotenv",
+ "env_logger",
+ "log",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "alloc-no-stdlib"
 version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1337,26 +1357,6 @@ checksum = "1cfaf33c695fc6e08064efbc1f72ec937429614f25eef83af942d0e227c3a28f"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "langfuse_rust"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "async-openai",
- "async-trait",
- "base64 0.22.1",
- "chrono",
- "dotenv",
- "env_logger",
- "log",
- "reqwest 0.11.27",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "uuid",
 ]
 
 [[package]]

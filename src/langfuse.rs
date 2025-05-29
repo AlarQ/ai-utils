@@ -1,5 +1,4 @@
-use crate::openai::ChatCompletion;
-use crate::Message;
+use crate::openai::{ChatCompletion, OpenAIMessage};
 use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use chrono;
@@ -13,8 +12,8 @@ use uuid::Uuid;
 pub struct LangfuseTrace {
     pub id: Uuid,
     pub name: String,
-    pub input: Vec<Message>,
-    pub output: Vec<Message>,
+    pub input: Vec<OpenAIMessage>,
+    pub output: Vec<OpenAIMessage>,
     pub conversation_id: String,
 }
 
@@ -60,25 +59,30 @@ pub trait LangfuseService: Send + Sync {
         &self,
         trace_id: Uuid,
         name: &str,
-        input: &[Message],
-        output: &[Message],
+        input: &[OpenAIMessage],
+        output: &[OpenAIMessage],
         conversation_id: &str,
     ) -> String;
     async fn create_span(
         &self,
         trace_id: &str,
         name: &str,
-        input: &[Message],
-        output: &[Message],
+        input: &[OpenAIMessage],
+        output: &[OpenAIMessage],
     ) -> String;
     async fn finalize_span(
         &self,
         span_id: &str,
         name: &str,
-        input: &[Message],
+        input: &[OpenAIMessage],
         output: &ChatCompletion,
     );
-    async fn finalize_trace(&self, trace_id: &str, input: &[Message], output: &[Message]);
+    async fn finalize_trace(
+        &self,
+        trace_id: &str,
+        input: &[OpenAIMessage],
+        output: &[OpenAIMessage],
+    );
 }
 
 #[async_trait]
@@ -87,8 +91,8 @@ impl LangfuseService for LangfuseServiceImpl {
         &self,
         trace_id: Uuid,
         name: &str,
-        input: &[Message],
-        output: &[Message],
+        input: &[OpenAIMessage],
+        output: &[OpenAIMessage],
         conversation_id: &str,
     ) -> String {
         let url = format!("{}/api/public/ingestion", self.config.api_url);
@@ -130,8 +134,8 @@ impl LangfuseService for LangfuseServiceImpl {
         &self,
         trace_id: &str,
         name: &str,
-        input: &[Message],
-        output: &[Message],
+        input: &[OpenAIMessage],
+        output: &[OpenAIMessage],
     ) -> String {
         let span_id = uuid::Uuid::new_v4().to_string();
         let url = format!("{}/api/public/ingestion", self.config.api_url);
@@ -171,7 +175,7 @@ impl LangfuseService for LangfuseServiceImpl {
         &self,
         span_id: &str,
         name: &str,
-        input: &[Message],
+        input: &[OpenAIMessage],
         output: &ChatCompletion,
     ) {
         let url = format!("{}/api/public/ingestion", self.config.api_url);
@@ -206,7 +210,12 @@ impl LangfuseService for LangfuseServiceImpl {
         println!("Response: {:?}", response.text().await.unwrap());
     }
 
-    async fn finalize_trace(&self, trace_id: &str, input: &[Message], output: &[Message]) {
+    async fn finalize_trace(
+        &self,
+        trace_id: &str,
+        input: &[OpenAIMessage],
+        output: &[OpenAIMessage],
+    ) {
         let url = format!("{}/api/public/ingestion", self.config.api_url);
 
         let batch = json!({
@@ -243,7 +252,6 @@ impl LangfuseService for LangfuseServiceImpl {
 mod tests {
     use super::*;
     use crate::openai::ChatCompletion;
-    use crate::Message;
 
     #[tokio::test]
     async fn test_create_trace() {
@@ -268,12 +276,12 @@ mod tests {
             .create_trace(
                 Uuid::new_v4(),
                 "Main Completion",
-                &vec![Message {
+                &vec![OpenAIMessage {
                     role: "user".to_string(),
                     content: "test_ups_message".to_string(),
                     name: None,
                 }],
-                &vec![Message {
+                &vec![OpenAIMessage {
                     role: "assistant".to_string(),
                     content: "test_message".to_string(),
                     name: None,
@@ -307,12 +315,12 @@ mod tests {
             .create_trace(
                 Uuid::new_v4(),
                 "New Trace",
-                &vec![Message {
+                &vec![OpenAIMessage {
                     role: "user".to_string(),
                     content: "test_ups_message".to_string(),
                     name: None,
                 }],
-                &vec![Message {
+                &vec![OpenAIMessage {
                     role: "assistant".to_string(),
                     content: "test_message".to_string(),
                     name: None,
@@ -324,12 +332,12 @@ mod tests {
             .create_span(
                 &trace_id,
                 "First Span",
-                &vec![Message {
+                &vec![OpenAIMessage {
                     role: "user".to_string(),
                     content: "test_ups_message".to_string(),
                     name: None,
                 }],
-                &vec![Message {
+                &vec![OpenAIMessage {
                     role: "assistant".to_string(),
                     content: "test_message".to_string(),
                     name: None,
@@ -341,12 +349,12 @@ mod tests {
             .create_span(
                 &trace_id,
                 "Second Span",
-                &vec![Message {
+                &vec![OpenAIMessage {
                     role: "user".to_string(),
                     content: "test_ups_message".to_string(),
                     name: None,
                 }],
-                &vec![Message {
+                &vec![OpenAIMessage {
                     role: "assistant".to_string(),
                     content: "test_message".to_string(),
                     name: None,

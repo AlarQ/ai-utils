@@ -8,27 +8,20 @@
 
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
+use openai::OpenAIMessage;
 use serde::{Deserialize, Serialize};
 use std::env;
 use uuid::Uuid;
 
-mod openai;
-mod langfuse;
-
+pub mod langfuse;
+pub mod openai;
 
 #[derive(Deserialize)]
 struct ChatRequest {
-    messages: Vec<Message>,
+    messages: Vec<OpenAIMessage>,
     conversation_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-struct Message {
-    role: String,
-    content: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
-}
 
 #[derive(Serialize)]
 struct ChatResponse {
