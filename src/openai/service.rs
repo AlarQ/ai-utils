@@ -1,32 +1,38 @@
+use std::io::Bytes;
+
 use async_openai::{
     config::OpenAIConfig,
     types::{
-        ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage,
-        ChatCompletionRequestSystemMessage, ChatCompletionRequestSystemMessageContent,
-        ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent,
-        ChatCompletionRequestUserMessageContentPart, CreateChatCompletionRequest, ImageUrl,
+        AudioInput, ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage, ChatCompletionRequestSystemMessage, ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent, ChatCompletionRequestUserMessageContentPart, CreateChatCompletionRequest, CreateImageRequestArgs, CreateTranscriptionRequestArgs, Image, ImageResponseFormat, ImageSize, ImageUrl, ResponseFormat
     },
     Client,
 };
 use async_trait::async_trait;
+use serde_json;
 
 use crate::error::Error;
 use crate::openai::types::{ChatCompletion, OpenAIImageMessage, OpenAIMessage};
+
+use super::{OpenAIImageGenMessage, OpenAIModel};
 
 #[async_trait]
 pub trait OpenAIService: Send + Sync {
     async fn completion(
         &self,
-        messages: &[OpenAIMessage],
-        model: &str,
+        messages: Vec<OpenAIMessage>,
+        model: OpenAIModel,
     ) -> Result<ChatCompletion, Error>;
 
     async fn completion_image(
         &self,
-        text_messages: &[OpenAIMessage],
-        vision_messages: &[OpenAIImageMessage],
-        model: &str,
+        text_messages: Vec<OpenAIMessage>,
+        vision_messages: Vec<OpenAIImageMessage>,
+        model: OpenAIModel,
     ) -> Result<ChatCompletion, Error>;
+
+    async fn generate_image_url(&self, prompt: String) -> Result<String, Error>;
+
+    async fn transcribe(&self, audio: Vec<u8>) -> Result<String, Error>;
 }
 
 pub struct OpenAIServiceImpl {
@@ -47,8 +53,8 @@ impl OpenAIServiceImpl {
 impl OpenAIService for OpenAIServiceImpl {
     async fn completion(
         &self,
-        messages: &[OpenAIMessage],
-        model: &str,
+        messages: Vec<OpenAIMessage>,
+        model: OpenAIModel,
     ) -> Result<ChatCompletion, Error> {
         let request_messages: Vec<ChatCompletionRequestMessage> = messages
             .iter()
@@ -108,9 +114,9 @@ impl OpenAIService for OpenAIServiceImpl {
 
     async fn completion_image(
         &self,
-        text_messages: &[OpenAIMessage],
-        vision_messages: &[OpenAIImageMessage],
-        model: &str,
+        text_messages: Vec<OpenAIMessage>,
+        vision_messages: Vec<OpenAIImageMessage>,
+        model: OpenAIModel,
     ) -> Result<ChatCompletion, Error> {
         let text_messages: Vec<ChatCompletionRequestMessage> = text_messages
             .iter()
@@ -191,5 +197,44 @@ impl OpenAIService for OpenAIServiceImpl {
                 total_tokens: usage.total_tokens,
             }),
         })
+    }
+
+    async fn generate_image_url(&self, prompt: String) -> Result<String, Error> {
+        let request = CreateImageRequestArgs::default()
+            .prompt(prompt)
+            .n(1)
+            .response_format(ImageResponseFormat::Url)
+            .size(ImageSize::S1024x1024)
+            .user("async-openai")
+            .build()?;
+
+        let response = self
+            .client
+            .images()
+            .create(request)
+            .await
+            .map_err(|e| Error::OpenAI(e))?;
+        let image = &response.data[0];
+        match &**image {
+            Image::Url { url, .. } => Ok(url.clone()),
+            Image::B64Json { .. } => Err(Error::Other("Expected URL, got b64_json".to_string())),
+        }
+    }
+
+    async fn transcribe(&self, audio: Vec<u8>) -> Result<String, Error> {
+        let request: async_openai::types::CreateTranscriptionRequest =
+            CreateTranscriptionRequestArgs::default()
+                .file(AudioInput::from_vec_u8("audio.mp3".to_string(), audio))
+                .model(OpenAIModel::Gpt4oTranscribe.to_string())
+                .build()?;
+
+        let response = self
+            .client
+            .audio()
+            .transcribe(request)
+            .await
+            .map_err(|e| Error::OpenAI(e))?;
+
+        Ok(response.text)
     }
 }

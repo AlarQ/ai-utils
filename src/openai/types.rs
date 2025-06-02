@@ -51,10 +51,49 @@ pub struct OpenAIImageUrl {
     pub detail: Option<String>, // e.g., "high"
 }
 
+impl OpenAIImageUrl {
+    pub fn new(url: String, detail: Option<String>) -> Self {
+        Self {
+            url: format!("data:image/png;base64,{}", url),
+            detail,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OpenAIImageMessage {
     pub role: String,
     pub content: Vec<OpenAIImageUrl>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct OpenAIImageGenMessage {
+    pub prompt: String,
+    pub n: u32,
+    pub size: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum OpenAIModel {
+    #[serde(rename = "gpt-4o")]
+    Gpt4o,
+    #[serde(rename = "gpt-4o-mini")]
+    Gpt4oMini,
+    #[serde(rename = "gpt-4o-transcribe")]
+    Gpt4oTranscribe,
+    #[serde(rename = "gpt-1")]
+    Gpt1,
+}
+
+impl std::fmt::Display for OpenAIModel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OpenAIModel::Gpt4o => write!(f, "gpt-4o"),
+            OpenAIModel::Gpt4oMini => write!(f, "gpt-4o-mini"),
+            OpenAIModel::Gpt4oTranscribe => write!(f, "gpt-4o-transcribe"),
+            OpenAIModel::Gpt1 => write!(f, "gpt-1"),
+        }
+    }
 }
