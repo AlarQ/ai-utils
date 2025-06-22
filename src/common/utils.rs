@@ -152,23 +152,6 @@ pub async fn read_images_to_base64(
     Ok(results)
 }
 
-/// Parallel processing with custom concurrency limit
-pub async fn read_images_to_base64_parallel(
-    directory: &str,
-    format: ImageFormat,
-    max_concurrent: usize,
-) -> Result<Vec<Base64Image>, CommonError> {
-    // Set environment variable for this call
-    std::env::set_var("IMAGE_PROCESSING_CONCURRENCY", max_concurrent.to_string());
-
-    let result = read_images_to_base64(directory, format).await;
-
-    // Clean up environment variable
-    std::env::remove_var("IMAGE_PROCESSING_CONCURRENCY");
-
-    result
-}
-
 /// Convenience function for PNG images
 pub async fn read_png_to_base64(path: &str) -> Result<String, CommonError> {
     read_image_to_base64(path, ImageFormat::Png).await
