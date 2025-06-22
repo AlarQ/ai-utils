@@ -1,0 +1,166 @@
+/* Custom styles for AI Utils documentation */
+
+/* Mermaid diagram styling */
+.mermaid {
+    text-align: center;
+    margin: 2rem 0;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+/* Code block enhancements */
+pre {
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    background: #f8f9fa;
+}
+
+code {
+    background: #f1f3f4;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* Navigation improvements */
+.sidebar {
+    background: #23272e !important;
+    border-right: 1px solid #181a1f !important;
+    color: #f5f6fa !important;
+}
+
+.sidebar-nav {
+    padding: 1rem;
+}
+
+.sidebar-nav a {
+    color: #f5f6fa !important;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.sidebar-nav a:hover, .sidebar-nav a.active {
+    color: #00bcd4 !important;
+    background: rgba(0,188,212,0.08);
+    border-radius: 4px;
+}
+
+.sidebar .sidebar-title, .sidebar .sidebar-logo {
+    color: #f5f6fa !important;
+}
+
+/* Content styling */
+.chapter {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Callout boxes */
+.callout {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.callout-info {
+    background: #e3f2fd;
+    border-left-color: #2196f3;
+}
+
+.callout-warning {
+    background: #fff3e0;
+    border-left-color: #ff9800;
+}
+
+.callout-success {
+    background: #e8f5e8;
+    border-left-color: #4caf50;
+}
+
+/* Feature highlights */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.feature-card {
+    padding: 1.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.feature-card h3 {
+    margin-top: 0;
+    color: #2196f3;
+}
+
+/* Code examples */
+.code-example {
+    margin: 1.5rem 0;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.code-example-header {
+    background: #f8f9fa;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: 600;
+    color: #495057;
+}
+
+.code-example-content {
+    padding: 1rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .chapter {
+        padding: 1rem;
+    }
+    
+    .feature-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .mermaid {
+        overflow-x: auto;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .mermaid {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    .callout-info {
+        background: #2a4365;
+        border-left-color: #63b3ed;
+    }
+    
+    .callout-warning {
+        background: #744210;
+        border-left-color: #ed8936;
+    }
+    
+    .callout-success {
+        background: #22543d;
+        border-left-color: #68d391;
+    }
+    
+    .feature-card {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+} 
