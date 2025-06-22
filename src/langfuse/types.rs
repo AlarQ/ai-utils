@@ -208,6 +208,7 @@ impl IngestionEvent {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 pub struct TraceBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -238,6 +239,7 @@ pub struct TraceBody {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 pub struct ScoreBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -258,6 +260,7 @@ pub struct ScoreBody {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 pub struct SpanCreateBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -287,6 +290,7 @@ pub struct SpanCreateBody {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 pub struct SpanUpdateBody {
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -304,6 +308,7 @@ pub struct SpanUpdateBody {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 pub struct GenerationCreateBody {
     #[serde(flatten)]
     pub span: SpanCreateBody,
@@ -322,6 +327,7 @@ pub struct GenerationCreateBody {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 pub struct GenerationUpdateBody {
     #[serde(flatten)]
     pub span: SpanUpdateBody,
@@ -353,6 +359,7 @@ pub struct SDKLogBody {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 pub struct ObservationBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -392,6 +399,7 @@ pub struct ObservationBody {
 }
 
 #[derive(Debug, Serialize)]
+#[allow(non_snake_case)]
 pub struct OptionalObservationBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub traceId: Option<String>,
@@ -433,6 +441,7 @@ pub enum IngestionUsage {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct Usage {
     pub promptTokens: Option<u32>,
     pub completionTokens: Option<u32>,
@@ -440,6 +449,7 @@ pub struct Usage {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct OpenAIUsage {
     pub promptTokens: Option<u32>,
     pub completionTokens: Option<u32>,

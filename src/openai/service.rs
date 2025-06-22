@@ -232,7 +232,7 @@ impl OpenAIService {
             request.temperature = Some(temp);
         }
         if let Some(max_tokens) = options.max_tokens {
-            request.max_tokens = Some(max_tokens);
+            request.max_completion_tokens = Some(max_tokens);
         }
         if let Some(top_p) = options.top_p {
             request.top_p = Some(top_p);
