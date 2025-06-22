@@ -1,0 +1,17 @@
+[book]
+authors = ["AI Utils Team"]
+language = "en"
+multilingual = false
+src = "docs/src"
+title = "AI Utils - Complete AI Toolkit for Building AI Agents"
+
+[output.html]
+git-repository-url = "https://github.com/your-username/ai-utils"
+git-repository-icon = "fa-github"
+additional-css = ["docs/styles/custom.css"]
+additional-js = ["docs/scripts/mermaid.min.js", "docs/scripts/custom.js"]
+git-repository-content = "https://github.com/your-username/ai-utils/tree/main"
+
+[output.html.fold]
+enable = true
+level = 1 

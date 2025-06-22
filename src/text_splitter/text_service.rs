@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -22,6 +22,7 @@ pub struct Metadata {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Headers(HashMap<String, Vec<String>>);
 
+#[allow(dead_code)]
 impl Headers {
     fn new() -> Self {
         Headers(HashMap::new())
@@ -38,11 +39,13 @@ impl Headers {
     }
 }
 
+#[allow(dead_code)]
 pub struct TextSplitter {
     tokenizer: tiktoken_rs::CoreBPE,
     model_name: String,
 }
 
+#[allow(dead_code)]
 impl TextSplitter {
     pub fn new(model_name: Option<String>) -> Self {
         Self {

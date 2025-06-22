@@ -2,7 +2,8 @@ use std::{collections::HashMap, env};
 
 use qdrant_client::{
     qdrant::{
-        CreateCollectionBuilder, Distance, PointStruct, ScalarQuantizationBuilder, SearchParamsBuilder, SearchPointsBuilder, UpsertPointsBuilder, VectorParamsBuilder
+        CreateCollectionBuilder, Distance, PointStruct, SearchParamsBuilder, SearchPointsBuilder,
+        UpsertPointsBuilder, VectorParamsBuilder,
     },
     Payload, Qdrant, QdrantError,
 };
@@ -21,10 +22,7 @@ impl QdrantService {
         let url = env::var("QDRANT_URL").unwrap();
         let api_key = env::var("QDRANT_API_KEY").unwrap();
 
-        let client = Qdrant::from_url(&url)
-            .api_key(api_key)
-            .build()
-            .unwrap();
+        let client = Qdrant::from_url(&url).api_key(api_key).build().unwrap();
 
         Self {
             client,
@@ -99,16 +97,23 @@ impl QdrantService {
 
         let points = self
             .client
-            .search_points(SearchPointsBuilder::new(collection_name, vector, limit)
-            .with_payload(true)
-            .params(SearchParamsBuilder::default().hnsw_ef(128).exact(false))
-            
-        )
+            .search_points(
+                SearchPointsBuilder::new(collection_name, vector, limit)
+                    .with_payload(true)
+                    .params(SearchParamsBuilder::default().hnsw_ef(128).exact(false)),
+            )
             .await
             .unwrap()
             .result
             .into_iter()
-            .map(|p| QueryOutput(p.payload.into_iter().map(|(k, v)| (k, v.to_string())).collect()))
+            .map(|p| {
+                QueryOutput(
+                    p.payload
+                        .into_iter()
+                        .map(|(k, v)| (k, v.to_string()))
+                        .collect(),
+                )
+            })
             .collect();
 
         Ok(points)
