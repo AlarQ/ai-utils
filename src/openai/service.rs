@@ -38,10 +38,40 @@ impl OpenAIService {
     pub fn new() -> Result<Self, Error> {
         let api_key = std::env::var("OPENAI_API_KEY")
             .map_err(|_| Error::Config("OPENAI_API_KEY must be set".to_string()))?;
+
+        // Validate API key format
+        if api_key.trim().is_empty() {
+            return Err(Error::Config("OPENAI_API_KEY cannot be empty".to_string()));
+        }
+
+        if !api_key.starts_with("sk-") {
+            return Err(Error::Config(
+                "OPENAI_API_KEY must start with 'sk-'".to_string(),
+            ));
+        }
+
         let config = OpenAIConfig::new().with_api_key(api_key);
         Ok(Self {
             client: Client::with_config(config),
         })
+    }
+
+    /// Validate the service configuration
+    pub fn validate_config(&self) -> Result<(), Error> {
+        // This could be extended to test the connection or validate other config
+        Ok(())
+    }
+
+    /// Test the connection to OpenAI API
+    pub async fn test_connection(&self) -> Result<(), Error> {
+        // Simple test by trying to list models
+        self.client
+            .models()
+            .list()
+            .await
+            .map_err(|e| Error::OpenAI(e))?;
+
+        Ok(())
     }
 
     fn convert_message_to_openai(&self, message: &Message) -> ChatCompletionRequestMessage {
@@ -182,6 +212,29 @@ impl AIService for OpenAIService {
         messages: Vec<Message>,
         model: OpenAIModel,
     ) -> Result<ChatCompletion, Error> {
+        // Validate model supports chat
+        model.validate_operation("chat")?;
+
+        // Validate messages
+        if messages.is_empty() {
+            return Err(Error::OpenAIMissingParameter {
+                param: "messages".to_string(),
+            });
+        }
+
+        // Validate each message
+        for (i, message) in messages.iter().enumerate() {
+            message
+                .validate()
+                .map_err(|e| Error::OpenAIValidation(format!("Message {}: {}", i, e)))?;
+        }
+
+        // Check for vision requirements
+        let has_images = messages.iter().any(|msg| msg.has_images());
+        if has_images {
+            model.validate_operation("vision")?;
+        }
+
         let request_messages: Vec<ChatCompletionRequestMessage> = messages
             .iter()
             .map(|msg| self.convert_message_to_openai(msg))
@@ -204,6 +257,13 @@ impl AIService for OpenAIService {
     }
 
     async fn generate_image_url(&self, prompt: String) -> Result<String, Error> {
+        // Validate prompt
+        if prompt.trim().is_empty() {
+            return Err(Error::OpenAIValidation(
+                "Image generation prompt cannot be empty".to_string(),
+            ));
+        }
+
         let request = CreateImageRequestArgs::default()
             .prompt(prompt)
             .n(1)
@@ -218,14 +278,24 @@ impl AIService for OpenAIService {
             .create(request)
             .await
             .map_err(|e| Error::OpenAI(e))?;
+
         let image = &response.data[0];
         match &**image {
             Image::Url { url, .. } => Ok(url.clone()),
-            Image::B64Json { .. } => Err(Error::Other("Expected URL, got b64_json".to_string())),
+            Image::B64Json { .. } => Err(Error::OpenAIValidation(
+                "Expected URL response format, got b64_json".to_string(),
+            )),
         }
     }
 
     async fn transcribe(&self, audio: Vec<u8>) -> Result<String, Error> {
+        // Validate audio data
+        if audio.is_empty() {
+            return Err(Error::OpenAIValidation(
+                "Audio data cannot be empty".to_string(),
+            ));
+        }
+
         let request: async_openai::types::CreateTranscriptionRequest =
             CreateTranscriptionRequestArgs::default()
                 .file(AudioInput::from_vec_u8("audio.mp3".to_string(), audio))
@@ -243,6 +313,13 @@ impl AIService for OpenAIService {
     }
 
     async fn embed(&self, text: String) -> Result<Vec<f32>, Error> {
+        // Validate text
+        if text.trim().is_empty() {
+            return Err(Error::OpenAIValidation(
+                "Text for embedding cannot be empty".to_string(),
+            ));
+        }
+
         let request = CreateEmbeddingRequestArgs::default()
             .model(OpenAIModel::TextEmbedding3Large.to_string())
             .input(text)

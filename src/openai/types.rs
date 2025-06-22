@@ -67,6 +67,92 @@ impl Message {
         self.name = Some(name.into());
         self
     }
+
+    /// Validate the message content and structure
+    pub fn validate(&self) -> Result<(), crate::error::Error> {
+        // Check for empty content
+        match &self.content {
+            MessageContent::Text(text) => {
+                if text.trim().is_empty() {
+                    return Err(crate::error::Error::OpenAIValidation(
+                        "Message content cannot be empty".to_string(),
+                    ));
+                }
+            }
+            MessageContent::Image(images) => {
+                if images.is_empty() {
+                    return Err(crate::error::Error::OpenAIValidation(
+                        "Image message must contain at least one image".to_string(),
+                    ));
+                }
+                // Validate each image URL
+                for (i, image) in images.iter().enumerate() {
+                    image.validate().map_err(|e| {
+                        crate::error::Error::OpenAIValidation(format!("Image {}: {}", i, e))
+                    })?;
+                }
+            }
+            MessageContent::Mixed(parts) => {
+                if parts.is_empty() {
+                    return Err(crate::error::Error::OpenAIValidation(
+                        "Mixed content message must contain at least one part".to_string(),
+                    ));
+                }
+                // Validate each part
+                for (i, part) in parts.iter().enumerate() {
+                    match part {
+                        ContentPart::Text(text) => {
+                            if text.trim().is_empty() {
+                                return Err(crate::error::Error::OpenAIValidation(format!(
+                                    "Mixed content text part {} cannot be empty",
+                                    i
+                                )));
+                            }
+                        }
+                        ContentPart::Image(img) => {
+                            img.validate().map_err(|e| {
+                                crate::error::Error::OpenAIValidation(format!(
+                                    "Mixed content image part {}: {}",
+                                    i, e
+                                ))
+                            })?;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Validate name if present
+        if let Some(name) = &self.name {
+            if name.trim().is_empty() {
+                return Err(crate::error::Error::OpenAIValidation(
+                    "Message name cannot be empty".to_string(),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Check if the message contains images
+    pub fn has_images(&self) -> bool {
+        matches!(
+            self.content,
+            MessageContent::Image(_) | MessageContent::Mixed(_)
+        )
+    }
+
+    /// Get the text content if available
+    pub fn text_content(&self) -> Option<&str> {
+        match &self.content {
+            MessageContent::Text(text) => Some(text),
+            MessageContent::Mixed(parts) => parts.iter().find_map(|part| match part {
+                ContentPart::Text(text) => Some(text.as_str()),
+                ContentPart::Image(_) => None,
+            }),
+            MessageContent::Image(_) => None,
+        }
+    }
 }
 
 // Legacy types for backward compatibility
@@ -128,6 +214,50 @@ impl ImageUrl {
             detail,
         }
     }
+
+    /// Create an ImageUrl from a regular URL
+    pub fn from_url(url: &str, detail: Option<String>) -> Self {
+        Self {
+            url: url.to_string(),
+            detail,
+        }
+    }
+
+    /// Create an ImageUrl from base64 data
+    pub fn from_base64(base64_data: &str, detail: Option<String>) -> Self {
+        Self {
+            url: format!("data:image/png;base64,{}", base64_data),
+            detail,
+        }
+    }
+
+    /// Validate the URL format
+    pub fn validate(&self) -> Result<(), crate::error::Error> {
+        if self.url.trim().is_empty() {
+            return Err(crate::error::Error::OpenAIValidation(
+                "Image URL cannot be empty".to_string(),
+            ));
+        }
+
+        // Basic URL validation
+        if !self.url.starts_with("http") && !self.url.starts_with("data:") {
+            return Err(crate::error::Error::OpenAIValidation(
+                "Image URL must be a valid HTTP URL or data URI".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Check if the URL is a data URI
+    pub fn is_data_uri(&self) -> bool {
+        self.url.starts_with("data:")
+    }
+
+    /// Check if the URL is an HTTP URL
+    pub fn is_http_url(&self) -> bool {
+        self.url.starts_with("http")
+    }
 }
 
 // Legacy type for backward compatibility
@@ -179,5 +309,68 @@ impl std::fmt::Display for OpenAIModel {
             OpenAIModel::TextEmbedding3Large => write!(f, "text-embedding-3-large"),
             OpenAIModel::Custom(model) => write!(f, "{}", model),
         }
+    }
+}
+
+impl OpenAIModel {
+    /// Check if the model supports chat completions
+    pub fn supports_chat(&self) -> bool {
+        matches!(
+            self,
+            OpenAIModel::Gpt4o
+                | OpenAIModel::Gpt4oMini
+                | OpenAIModel::Gpt41
+                | OpenAIModel::Custom(_)
+        )
+    }
+
+    /// Check if the model supports vision (image analysis)
+    pub fn supports_vision(&self) -> bool {
+        matches!(self, OpenAIModel::Gpt4o | OpenAIModel::Custom(_))
+    }
+
+    /// Check if the model supports audio transcription
+    pub fn supports_transcription(&self) -> bool {
+        matches!(self, OpenAIModel::Gpt4oTranscribe)
+    }
+
+    /// Check if the model supports embeddings
+    pub fn supports_embeddings(&self) -> bool {
+        matches!(
+            self,
+            OpenAIModel::TextEmbedding3Large | OpenAIModel::Custom(_)
+        )
+    }
+
+    /// Get the maximum tokens for the model
+    pub fn max_tokens(&self) -> Option<u32> {
+        match self {
+            OpenAIModel::Gpt4o => Some(128000),
+            OpenAIModel::Gpt4oMini => Some(128000),
+            OpenAIModel::Gpt41 => Some(128000),
+            OpenAIModel::Gpt4oTranscribe => None,
+            OpenAIModel::TextEmbedding3Large => None,
+            OpenAIModel::Custom(_) => None, // Unknown for custom models
+        }
+    }
+
+    /// Validate that the model supports the given operation
+    pub fn validate_operation(&self, operation: &str) -> Result<(), crate::error::Error> {
+        let supported = match operation {
+            "chat" => self.supports_chat(),
+            "vision" => self.supports_vision(),
+            "transcription" => self.supports_transcription(),
+            "embeddings" => self.supports_embeddings(),
+            _ => false,
+        };
+
+        if !supported {
+            return Err(crate::error::Error::OpenAIUnsupportedModel {
+                model: self.to_string(),
+                operation: operation.to_string(),
+            });
+        }
+
+        Ok(())
     }
 }
