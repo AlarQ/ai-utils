@@ -306,7 +306,11 @@ impl QdrantService {
         vector: Vec<f32>,
         payload: HashMap<String, String>,
     ) -> Result<(), Error> {
-        let payload: Payload = json!(payload).as_object().unwrap().clone().into();
+        let payload: Payload = json!(payload)
+            .as_object()
+            .ok_or_else(|| Error::Other("Failed to serialize payload to JSON object".to_string()))?
+            .clone()
+            .into();
         let points = vec![PointStruct::new(point_id, vector, payload)];
 
         self.client
