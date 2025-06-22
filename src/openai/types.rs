@@ -284,7 +284,7 @@ pub struct OpenAIImageGenMessage {
     pub size: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum OpenAIModel {
     #[serde(rename = "gpt-4o")]
     Gpt4o,
@@ -372,5 +372,84 @@ impl OpenAIModel {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ChatOptions {
+    pub model: OpenAIModel,
+    pub temperature: Option<f32>,
+    pub max_tokens: Option<u32>,
+    pub top_p: Option<f32>,
+    pub stop: Option<Vec<String>>,
+    pub user: Option<String>,
+}
+
+impl Default for ChatOptions {
+    fn default() -> Self {
+        Self {
+            model: OpenAIModel::Gpt4o,
+            temperature: None,
+            max_tokens: None,
+            top_p: None,
+            stop: None,
+            user: None,
+        }
+    }
+}
+
+pub struct ChatRequestBuilder {
+    messages: Vec<Message>,
+    options: ChatOptions,
+}
+
+impl ChatRequestBuilder {
+    pub fn new(model: OpenAIModel) -> Self {
+        Self {
+            messages: Vec::new(),
+            options: ChatOptions {
+                model,
+                ..Default::default()
+            },
+        }
+    }
+
+    pub fn message(mut self, message: Message) -> Self {
+        self.messages.push(message);
+        self
+    }
+
+    pub fn messages(mut self, messages: Vec<Message>) -> Self {
+        self.messages = messages;
+        self
+    }
+
+    pub fn temperature(mut self, temperature: f32) -> Self {
+        self.options.temperature = Some(temperature);
+        self
+    }
+
+    pub fn max_tokens(mut self, max_tokens: u32) -> Self {
+        self.options.max_tokens = Some(max_tokens);
+        self
+    }
+
+    pub fn top_p(mut self, top_p: f32) -> Self {
+        self.options.top_p = Some(top_p);
+        self
+    }
+
+    pub fn stop(mut self, stop: Vec<String>) -> Self {
+        self.options.stop = Some(stop);
+        self
+    }
+
+    pub fn user(mut self, user: String) -> Self {
+        self.options.user = Some(user);
+        self
+    }
+
+    pub fn build(self) -> (Vec<Message>, ChatOptions) {
+        (self.messages, self.options)
     }
 }

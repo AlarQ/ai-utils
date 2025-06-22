@@ -13,7 +13,9 @@ use async_openai::{
 use async_trait::async_trait;
 
 use crate::error::Error;
-use crate::openai::types::{ChatCompletion, Message, MessageContent, MessageRole, OpenAIModel};
+use crate::openai::types::{
+    ChatCompletion, ChatOptions, Message, MessageContent, MessageRole, OpenAIModel,
+};
 
 #[async_trait]
 pub trait AIService: Send + Sync {
@@ -202,6 +204,87 @@ impl OpenAIService {
                 total_tokens: usage.total_tokens,
             }),
         }
+    }
+
+    /// Unified chat completion API using builder/options pattern
+    pub async fn chat(
+        &self,
+        messages: Vec<Message>,
+        options: ChatOptions,
+    ) -> Result<ChatCompletion, Error> {
+        // Validate model supports chat
+        options.model.validate_operation("chat")?;
+
+        // Validate messages
+        if messages.is_empty() {
+            return Err(Error::OpenAIMissingParameter {
+                param: "messages".to_string(),
+            });
+        }
+
+        for (i, message) in messages.iter().enumerate() {
+            message
+                .validate()
+                .map_err(|e| Error::OpenAIValidation(format!("Message {}: {}", i, e)))?;
+        }
+
+        let has_images = messages.iter().any(|msg| msg.has_images());
+        if has_images {
+            options.model.validate_operation("vision")?;
+        }
+
+        let request_messages: Vec<ChatCompletionRequestMessage> = messages
+            .iter()
+            .map(|msg| self.convert_message_to_openai(msg))
+            .collect();
+
+        let mut request = CreateChatCompletionRequest {
+            model: options.model.to_string(),
+            messages: request_messages,
+            ..Default::default()
+        };
+
+        if let Some(temp) = options.temperature {
+            request.temperature = Some(temp);
+        }
+        if let Some(max_tokens) = options.max_tokens {
+            request.max_tokens = Some(max_tokens);
+        }
+        if let Some(top_p) = options.top_p {
+            request.top_p = Some(top_p);
+        }
+        if let Some(stop) = options.stop {
+            request.stop = Some(async_openai::types::Stop::StringArray(stop));
+        }
+        if let Some(user) = options.user {
+            request.user = Some(user);
+        }
+
+        let response = self
+            .client
+            .chat()
+            .create(request)
+            .await
+            .map_err(|e| Error::OpenAI(e))?;
+
+        Ok(self.convert_response_to_chat_completion(response))
+    }
+
+    /// Deprecated: use chat() with builder/options instead
+    #[deprecated(note = "Use chat() with builder/options instead")]
+    pub async fn completion(
+        &self,
+        messages: Vec<Message>,
+        model: OpenAIModel,
+    ) -> Result<ChatCompletion, Error> {
+        self.chat(
+            messages,
+            ChatOptions {
+                model,
+                ..Default::default()
+            },
+        )
+        .await
     }
 }
 
