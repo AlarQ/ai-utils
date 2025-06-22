@@ -190,6 +190,100 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## AI Application Monitoring with Langfuse
+
+Monitor your AI applications with comprehensive observability:
+
+```rust
+use ai_utils::{
+    openai::{OpenAIService, OpenAIMessage, OpenAIModel},
+    langfuse::{LangfuseConfig, LangfuseServiceImpl},
+};
+use uuid::Uuid;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv::dotenv().ok();
+    
+    let openai = OpenAIService::new();
+    let langfuse = LangfuseServiceImpl::new(LangfuseConfig::new());
+    
+    // Create a trace for this conversation
+    let trace_id = Uuid::new_v4();
+    let user_message = "What is the weather like today?";
+    
+    let trace_id_str = langfuse
+        .create_trace(
+            trace_id,
+            "weather_inquiry",
+            Some(&[OpenAIMessage::new("user", user_message, None)]),
+            None,
+            Some("session_123"),
+        )
+        .await?;
+    
+    // Create a generation to track the AI response
+    let generation_id = langfuse
+        .create_generation(
+            &trace_id_str,
+            "weather_response",
+            "gpt-4",
+            &[OpenAIMessage::new("user", user_message, None)],
+        )
+        .await?;
+    
+    // Get AI response
+    let messages = vec![
+        OpenAIMessage::new("system", "You are a helpful weather assistant.", None),
+        OpenAIMessage::new("user", user_message, None),
+    ];
+    
+    let response = openai.completion(messages, OpenAIModel::GPT4).await?;
+    
+    // Update generation with the response
+    langfuse.update_generation(&generation_id, &response).await?;
+    
+    // Create a score for response quality
+    use ai_utils::langfuse::types::{ScoreBody, BaseEvent, IngestionEvent, IngestionBatch};
+    use serde_json::json;
+    use chrono;
+    
+    let score_body = ScoreBody {
+        id: Some(Uuid::new_v4().to_string()),
+        traceId: Some(trace_id_str.clone()),
+        name: "response_quality".to_string(),
+        value: json!(0.85),
+        comment: Some("Good response quality".to_string()),
+        sessionId: None,
+        observationId: None,
+        environment: None,
+        metadata: None,
+    };
+    
+    let batch = IngestionBatch {
+        batch: vec![IngestionEvent::score_create(
+            BaseEvent {
+                id: Uuid::new_v4().to_string(),
+                timestamp: chrono::Utc::now().to_rfc3339(),
+                metadata: None,
+            },
+            score_body,
+        )],
+        metadata: None,
+    };
+    
+    langfuse.send_batch(batch).await?;
+    
+    if let Some(choice) = response.choices.first() {
+        println!("AI Response: {}", choice.message.content);
+        println!("Trace ID: {}", trace_id_str);
+        println!("Generation ID: {}", generation_id);
+    }
+    
+    Ok(())
+}
+```
+
 ## Key Concepts
 
 ### 1. Service Initialization

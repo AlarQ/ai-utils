@@ -42,16 +42,16 @@
     "metadata": {
       "tokens": 957,
       "headers": {
-        "h3": [
-          "Managing tasks",
-          "E-mail"
-        ],
         "h2": [
           "Text editor(s)",
           "General Workflow"
         ],
         "h1": [
           "Indie Hacker's toolstack 2024"
+        ],
+        "h3": [
+          "Managing tasks",
+          "E-mail"
         ]
       },
       "urls": [
@@ -73,9 +73,6 @@
     "metadata": {
       "tokens": 936,
       "headers": {
-        "h3": [
-          "Calendar"
-        ],
         "h2": [
           "Text editor(s)",
           "General Workflow",
@@ -83,6 +80,9 @@
         ],
         "h1": [
           "Indie Hacker's toolstack 2024"
+        ],
+        "h3": [
+          "Calendar"
         ]
       },
       "urls": [

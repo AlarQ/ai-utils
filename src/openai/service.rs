@@ -30,6 +30,8 @@ pub trait AIService: Send + Sync {
     async fn transcribe(&self, audio: Vec<u8>) -> Result<String, Error>;
 
     async fn embed(&self, text: String) -> Result<Vec<f32>, Error>;
+
+    async fn embed_batch(&self, texts: Vec<String>) -> Result<Vec<Vec<f32>>, Error>;
 }
 
 pub struct OpenAIService {
@@ -232,7 +234,7 @@ impl OpenAIService {
             request.temperature = Some(temp);
         }
         if let Some(max_tokens) = options.max_tokens {
-            request.max_tokens = Some(max_tokens);
+            request.max_completion_tokens = Some(max_tokens);
         }
         if let Some(top_p) = options.top_p {
             request.top_p = Some(top_p);
@@ -400,5 +402,32 @@ impl AIService for OpenAIService {
             .map_err(|e| Error::OpenAI(e))?;
 
         Ok(response.data[0].embedding.clone())
+    }
+
+    async fn embed_batch(&self, texts: Vec<String>) -> Result<Vec<Vec<f32>>, Error> {
+        // Validate texts
+        if texts.is_empty() {
+            return Err(Error::OpenAIValidation(
+                "Texts for batch embedding cannot be empty".to_string(),
+            ));
+        }
+
+        let request = CreateEmbeddingRequestArgs::default()
+            .model(OpenAIModel::TextEmbedding3Large.to_string())
+            .input(texts)
+            .build()?;
+
+        let response = self
+            .client
+            .embeddings()
+            .create(request)
+            .await
+            .map_err(|e| Error::OpenAI(e))?;
+
+        Ok(response
+            .data
+            .iter()
+            .map(|data| data.embedding.clone())
+            .collect())
     }
 }

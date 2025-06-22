@@ -10,4 +10,6 @@
 
 # Modules
 
-- [Overview](modules/overview.md) 
+- [Overview](modules/overview.md)
+- [Langfuse](modules/langfuse.md)
+- [Qdrant](modules/qdrant.md) 

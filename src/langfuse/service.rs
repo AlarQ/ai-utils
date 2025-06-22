@@ -7,6 +7,10 @@ use uuid::Uuid;
 
 use crate::error::Error;
 use crate::langfuse::types::LangfuseConfig;
+use crate::langfuse::types::{
+    BaseEvent, GenerationCreateBody, GenerationUpdateBody, IngestionBatch, IngestionEvent,
+    IngestionResponse, IngestionUsage, OpenAIUsage, SpanCreateBody, SpanUpdateBody, TraceBody,
+};
 use crate::openai::{ChatCompletion, OpenAIMessage};
 
 pub struct LangfuseServiceImpl {
@@ -26,6 +30,74 @@ impl LangfuseServiceImpl {
         let credentials = format!("{}:{}", self.config.public_key, self.config.secret_key);
         format!("Basic {}", BASE64.encode(credentials))
     }
+
+    fn serialize_messages(messages: &[OpenAIMessage]) -> serde_json::Value {
+        serde_json::to_value(messages).unwrap_or_else(|_| json!(messages))
+    }
+
+    fn create_base_event() -> BaseEvent {
+        BaseEvent {
+            id: Uuid::new_v4().to_string(),
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            metadata: None,
+        }
+    }
+
+    fn convert_usage(usage: &crate::openai::Usage) -> IngestionUsage {
+        IngestionUsage::OpenAIUsage(OpenAIUsage {
+            promptTokens: Some(usage.prompt_tokens),
+            completionTokens: Some(usage.completion_tokens),
+            totalTokens: Some(usage.total_tokens),
+        })
+    }
+
+    pub async fn send_batch(&self, batch: IngestionBatch) -> Result<IngestionResponse, Error> {
+        let url = format!("{}/api/public/ingestion", self.config.api_url);
+
+        let response = self
+            .client
+            .post(&url)
+            .header("Authorization", self.get_auth_header())
+            .json(&batch)
+            .send()
+            .await?;
+
+        let status = response.status();
+
+        // Langfuse API returns 207 for batch operations with detailed success/error info
+        if status == 207 {
+            let ingestion_response: IngestionResponse = response.json().await?;
+
+            // Check if there are any errors
+            if !ingestion_response.errors.is_empty() {
+                let error_messages: Vec<String> = ingestion_response
+                    .errors
+                    .iter()
+                    .map(|e| {
+                        format!(
+                            "ID {}: {} (status: {})",
+                            e.id,
+                            e.message.as_deref().unwrap_or("Unknown error"),
+                            e.status
+                        )
+                    })
+                    .collect();
+                return Err(Error::Langfuse(format!(
+                    "Batch ingestion errors: {}",
+                    error_messages.join(", ")
+                )));
+            }
+
+            Ok(ingestion_response)
+        } else if status.is_success() {
+            // Handle other success status codes
+            let ingestion_response: IngestionResponse = response.json().await?;
+            Ok(ingestion_response)
+        } else {
+            let error_text = response.text().await?;
+            Err(Error::Langfuse(format!("HTTP {}: {}", status, error_text)))
+        }
+    }
 }
 
 #[async_trait]
@@ -34,33 +106,33 @@ pub trait LangfuseService: Send + Sync {
         &self,
         trace_id: Uuid,
         name: &str,
-        input: &[OpenAIMessage],
-        output: &[OpenAIMessage],
-        conversation_id: &str,
+        input: Option<&[OpenAIMessage]>,
+        output: Option<&[OpenAIMessage]>,
+        conversation_id: Option<&str>,
     ) -> Result<String, Error>;
+
+    async fn create_generation(
+        &self,
+        trace_id: &str,
+        name: &str,
+        model: &str,
+        input: &[OpenAIMessage],
+    ) -> Result<String, Error>;
+
+    async fn update_generation(
+        &self,
+        generation_id: &str,
+        output: &ChatCompletion,
+    ) -> Result<(), Error>;
 
     async fn create_span(
         &self,
         trace_id: &str,
         name: &str,
-        input: &[OpenAIMessage],
-        output: &[OpenAIMessage],
+        input: Option<&[OpenAIMessage]>,
     ) -> Result<String, Error>;
 
-    async fn finalize_span(
-        &self,
-        span_id: &str,
-        name: &str,
-        input: &[OpenAIMessage],
-        output: &ChatCompletion,
-    ) -> Result<(), Error>;
-
-    async fn finalize_trace(
-        &self,
-        trace_id: &str,
-        input: &[OpenAIMessage],
-        output: &[OpenAIMessage],
-    ) -> Result<(), Error>;
+    async fn update_span(&self, span_id: &str, output: &[OpenAIMessage]) -> Result<(), Error>;
 }
 
 #[async_trait]
@@ -69,177 +141,182 @@ impl LangfuseService for LangfuseServiceImpl {
         &self,
         trace_id: Uuid,
         name: &str,
-        input: &[OpenAIMessage],
-        output: &[OpenAIMessage],
-        conversation_id: &str,
+        input: Option<&[OpenAIMessage]>,
+        output: Option<&[OpenAIMessage]>,
+        conversation_id: Option<&str>,
     ) -> Result<String, Error> {
-        let url = format!("{}/api/public/ingestion", self.config.api_url);
-
-        let batch = json!({
-            "batch": [
-                {
-                    "type": "trace-create",
-                    "id": trace_id.to_string(),
-                    "timestamp": chrono::Utc::now().to_rfc3339(),
-                    "body": {
-                        "id": trace_id.to_string(),
-                        "name": name,
-                        "input": input,
-                        "output": output,
-                        "metadata": {
-                            "conversation_id": conversation_id
-                        }
-                    }
-                }
-            ]
-        });
-
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", self.get_auth_header())
-            .json(&batch)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::Langfuse(format!(
-                "Failed to create trace: {}",
-                response.text().await?
-            )));
+        let mut metadata = serde_json::Map::new();
+        if let Some(conv_id) = conversation_id {
+            metadata.insert("conversation_id".to_string(), json!(conv_id));
         }
 
+        let body = TraceBody {
+            id: Some(trace_id.to_string()),
+            timestamp: Some(chrono::Utc::now().to_rfc3339()),
+            name: Some(name.to_string()),
+            userId: None,
+            input: input.map(Self::serialize_messages),
+            output: output.map(Self::serialize_messages),
+            sessionId: None,
+            release: None,
+            version: None,
+            metadata: if metadata.is_empty() {
+                None
+            } else {
+                Some(json!(metadata))
+            },
+            tags: None,
+            environment: None,
+            public: None,
+        };
+
+        let event = IngestionEvent::trace_create(Self::create_base_event(), body);
+
+        let batch = IngestionBatch {
+            batch: vec![event],
+            metadata: None,
+        };
+
+        self.send_batch(batch).await?;
         Ok(trace_id.to_string())
+    }
+
+    async fn create_generation(
+        &self,
+        trace_id: &str,
+        name: &str,
+        model: &str,
+        input: &[OpenAIMessage],
+    ) -> Result<String, Error> {
+        let generation_id = Uuid::new_v4().to_string();
+
+        let span_body = SpanCreateBody {
+            id: Some(generation_id.clone()),
+            traceId: trace_id.to_string(),
+            name: Some(name.to_string()),
+            startTime: Some(chrono::Utc::now().to_rfc3339()),
+            endTime: None,
+            input: Some(Self::serialize_messages(input)),
+            output: None, // Will be set on update
+            metadata: None,
+            level: None,
+            statusMessage: None,
+            parentObservationId: None,
+            version: None,
+            environment: None,
+        };
+
+        let body = GenerationCreateBody {
+            span: span_body,
+            completionStartTime: Some(chrono::Utc::now().to_rfc3339()),
+            model: Some(model.to_string()),
+            modelParameters: None,
+            usage: None, // Will be set on update
+            promptName: None,
+            promptVersion: None,
+        };
+
+        let event = IngestionEvent::generation_create(Self::create_base_event(), body);
+
+        let batch = IngestionBatch {
+            batch: vec![event],
+            metadata: None,
+        };
+
+        self.send_batch(batch).await?;
+        Ok(generation_id)
+    }
+
+    async fn update_generation(
+        &self,
+        generation_id: &str,
+        output: &ChatCompletion,
+    ) -> Result<(), Error> {
+        let span_body = SpanUpdateBody {
+            id: generation_id.to_string(),
+            endTime: Some(chrono::Utc::now().to_rfc3339()),
+            input: None,
+            output: Some(serde_json::to_value(output)?),
+            metadata: None,
+            level: None,
+            statusMessage: None,
+        };
+
+        let body = GenerationUpdateBody {
+            span: span_body,
+            completionStartTime: None,
+            model: None,
+            modelParameters: None,
+            usage: output.usage.as_ref().map(Self::convert_usage),
+            promptName: None,
+            promptVersion: None,
+        };
+
+        let event = IngestionEvent::generation_update(Self::create_base_event(), body);
+
+        let batch = IngestionBatch {
+            batch: vec![event],
+            metadata: None,
+        };
+
+        self.send_batch(batch).await?;
+        Ok(())
     }
 
     async fn create_span(
         &self,
         trace_id: &str,
         name: &str,
-        input: &[OpenAIMessage],
-        output: &[OpenAIMessage],
+        input: Option<&[OpenAIMessage]>,
     ) -> Result<String, Error> {
-        let span_id = uuid::Uuid::new_v4().to_string();
-        let url = format!("{}/api/public/ingestion", self.config.api_url);
+        let span_id = Uuid::new_v4().to_string();
 
-        let batch = json!({
-            "batch": [
-                {
-                    "type": "span-create",
-                    "id": span_id,
-                    "timestamp": chrono::Utc::now().to_rfc3339(),
-                    "body": {
-                        "id": span_id,
-                        "name": name,
-                        "traceId": trace_id,
-                        "input": input,
-                        "output": output
-                    }
-                }
-            ]
-        });
+        let body = SpanCreateBody {
+            id: Some(span_id.clone()),
+            traceId: trace_id.to_string(),
+            name: Some(name.to_string()),
+            startTime: Some(chrono::Utc::now().to_rfc3339()),
+            endTime: None,
+            input: input.map(Self::serialize_messages),
+            output: None, // Will be set on update
+            metadata: None,
+            level: None,
+            statusMessage: None,
+            parentObservationId: None,
+            version: None,
+            environment: None,
+        };
 
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", self.get_auth_header())
-            .json(&batch)
-            .send()
-            .await?;
+        let event = IngestionEvent::span_create(Self::create_base_event(), body);
 
-        if !response.status().is_success() {
-            return Err(Error::Langfuse(format!(
-                "Failed to create span: {}",
-                response.text().await?
-            )));
-        }
+        let batch = IngestionBatch {
+            batch: vec![event],
+            metadata: None,
+        };
 
+        self.send_batch(batch).await?;
         Ok(span_id)
     }
 
-    async fn finalize_span(
-        &self,
-        span_id: &str,
-        name: &str,
-        input: &[OpenAIMessage],
-        output: &ChatCompletion,
-    ) -> Result<(), Error> {
-        let url = format!("{}/api/public/ingestion", self.config.api_url);
+    async fn update_span(&self, span_id: &str, output: &[OpenAIMessage]) -> Result<(), Error> {
+        let body = SpanUpdateBody {
+            id: span_id.to_string(),
+            endTime: Some(chrono::Utc::now().to_rfc3339()),
+            input: None,
+            output: Some(Self::serialize_messages(output)),
+            metadata: None,
+            level: None,
+            statusMessage: None,
+        };
 
-        let batch = json!({
-            "batch": [
-                {
-                    "type": "span-update",
-                    "id": span_id,
-                    "timestamp": chrono::Utc::now().to_rfc3339(),
-                    "body": {
-                        "output": output,
-                        "metadata": {
-                            "name": name,
-                            "input": input
-                        }
-                    }
-                }
-            ]
-        });
+        let event = IngestionEvent::span_update(Self::create_base_event(), body);
 
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", self.get_auth_header())
-            .json(&batch)
-            .send()
-            .await?;
+        let batch = IngestionBatch {
+            batch: vec![event],
+            metadata: None,
+        };
 
-        if !response.status().is_success() {
-            return Err(Error::Langfuse(format!(
-                "Failed to finalize span: {}",
-                response.text().await?
-            )));
-        }
-
-        Ok(())
-    }
-
-    async fn finalize_trace(
-        &self,
-        trace_id: &str,
-        input: &[OpenAIMessage],
-        output: &[OpenAIMessage],
-    ) -> Result<(), Error> {
-        let url = format!("{}/api/public/ingestion", self.config.api_url);
-
-        let batch = json!({
-            "batch": [
-                {
-                    "type": "trace-update",
-                    "id": trace_id,
-                    "timestamp": chrono::Utc::now().to_rfc3339(),
-                    "body": {
-                        "metadata": {
-                            "input": input,
-                            "output": output
-                        }
-                    }
-                }
-            ]
-        });
-
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", self.get_auth_header())
-            .json(&batch)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::Langfuse(format!(
-                "Failed to finalize trace: {}",
-                response.text().await?
-            )));
-        }
-
+        self.send_batch(batch).await?;
         Ok(())
     }
 }

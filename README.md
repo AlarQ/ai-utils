@@ -1,6 +1,6 @@
 # AI Utils
 
-A Rust library that provides utilities for working with OpenAI and Langfuse, including monitoring and analytics capabilities.
+A comprehensive Rust library for AI and machine learning utilities, including OpenAI integration, Qdrant vector database operations, Langfuse observability, and text processing.
 
 ## Prerequisites
 
@@ -36,13 +36,55 @@ The library is organized into the following modules:
 
 ## Features
 
-- Integration with OpenAI's GPT models
-- Langfuse integration for monitoring and analytics
-- Error handling with custom error types
-- Async/await support
-- Image processing capabilities
-- UUID generation and management
-- JSON serialization/deserialization
+This library supports feature flags to allow you to compile only the functionality you need, reducing binary size and dependencies.
+
+### Available Features
+
+- **`openai`** (default): OpenAI API integration for embeddings and chat completions
+- **`qdrant`** (default): Qdrant vector database client and operations
+- **`langfuse`** (default): Langfuse observability and tracing
+- **`text-splitter`** (default): Text splitting and tokenization utilities
+- **`full`**: All features enabled (same as default)
+
+### Feature Usage
+
+#### Minimal build (no AI features):
+```toml
+[dependencies]
+ai_utils = { version = "0.1.0", default-features = false }
+```
+
+#### Only Qdrant (without OpenAI):
+```toml
+[dependencies]
+ai_utils = { version = "0.1.0", default-features = false, features = ["qdrant"] }
+```
+
+#### Only OpenAI:
+```toml
+[dependencies]
+ai_utils = { version = "0.1.0", default-features = false, features = ["openai"] }
+```
+
+#### Full build (all features):
+```toml
+[dependencies]
+ai_utils = { version = "0.1.0", features = ["full"] }
+```
+
+### Feature-Specific API
+
+When the `openai` feature is disabled, the Qdrant service provides alternative methods that work with pre-computed vectors:
+
+```rust
+// With OpenAI feature (default)
+qdrant_service.upsert_point("collection", point).await?;
+qdrant_service.search_points("collection", "query", 10).await?;
+
+// Without OpenAI feature
+qdrant_service.upsert_point_with_vector("collection", 1, vector, payload).await?;
+qdrant_service.search_points_with_vector("collection", vector, 10).await?;
+```
 
 ## Dependencies
 

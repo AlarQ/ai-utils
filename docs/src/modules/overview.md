@@ -33,10 +33,14 @@ AI Utils is organized into several core modules, each providing a set of capabil
 ---
 
 ## Langfuse
-- **Description:** Monitoring and observability for AI applications.
+- **Description:** Comprehensive monitoring and observability for AI applications through integration with the Langfuse platform.
 - **Key Features:**
-  - Trace and span tracking
-  - Performance and error monitoring
+  - Trace and span tracking for complete workflow monitoring
+  - Generation tracking for model outputs and performance
+  - Score creation for evaluation and metrics
+  - Batch ingestion with detailed error handling
+  - Support for all Langfuse event types (traces, spans, generations, scores, events, observations)
+  - Type-safe Rust implementation matching the Langfuse API specification
 
 ---
 
@@ -49,4 +53,4 @@ AI Utils is organized into several core modules, each providing a set of capabil
 
 ---
 
-For detailed usage and examples, see the [Quick Start](../getting-started/quick-start.md) section.
+For detailed usage and examples, see the [Quick Start](../getting-started/quick-start.md) section and individual module documentation.
