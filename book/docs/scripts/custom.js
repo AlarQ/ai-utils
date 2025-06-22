@@ -1,48 +1,59 @@
 // Custom JavaScript for AI Utils documentation
 
-// Initialize Mermaid diagrams
 document.addEventListener('DOMContentLoaded', function() {
     // Check if Mermaid is available
     if (typeof mermaid !== 'undefined') {
-        // Configure Mermaid
-        mermaid.initialize({
-            startOnLoad: true,
-            theme: 'default',
-            flowchart: {
-                useMaxWidth: true,
-                htmlLabels: true,
-                curve: 'basis'
-            },
-            sequence: {
-                useMaxWidth: true,
-                diagramMarginX: 50,
-                diagramMarginY: 10,
-                actorMargin: 50,
-                width: 150,
-                height: 65,
-                boxMargin: 10,
-                boxTextMargin: 5,
-                noteMargin: 10,
-                messageMargin: 35,
-                mirrorActors: true,
-                bottomMarginAdj: 1,
-                useMaxWidth: true,
-                rightAngles: false,
-                showSequenceNumbers: false
-            },
-            gantt: {
-                titleTopMargin: 25,
-                barHeight: 20,
-                barGap: 4,
-                topPadding: 50,
-                leftPadding: 75,
-                gridLineStartPadding: 35,
-                fontSize: 11,
-                fontFamily: '"Open-Sans", "sans-serif"',
-                numberSectionStyles: 4,
-                axisFormat: '%Y-%m-%d'
-            }
-        });
+        const mermaidElements = document.querySelectorAll("code.language-mermaid");
+
+        if (mermaidElements.length) {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                flowchart: {
+                    useMaxWidth: true,
+                    htmlLabels: true,
+                    curve: 'basis'
+                },
+                sequence: {
+                    useMaxWidth: true,
+                    diagramMarginX: 50,
+                    diagramMarginY: 10,
+                    actorMargin: 50,
+                    width: 150,
+                    height: 65,
+                    boxMargin: 10,
+                    boxTextMargin: 5,
+                    noteMargin: 10,
+                    messageMargin: 35,
+                    mirrorActors: true,
+                    bottomMarginAdj: 1,
+                    rightAngles: false,
+                    showSequenceNumbers: false
+                },
+                gantt: {
+                    titleTopMargin: 25,
+                    barHeight: 20,
+                    barGap: 4,
+                    topPadding: 50,
+                    leftPadding: 75,
+                    gridLineStartPadding: 35,
+                    fontSize: 11,
+                    fontFamily: '"Open-Sans", "sans-serif"',
+                    numberSectionStyles: 4,
+                    axisFormat: '%Y-%m-%d'
+                }
+            });
+
+            mermaidElements.forEach((element) => {
+                const pre = element.parentElement;
+                const mermaidContainer = document.createElement("div");
+                mermaidContainer.textContent = element.textContent;
+                mermaidContainer.classList.add("mermaid");
+                pre.replaceWith(mermaidContainer);
+            });
+            
+            mermaid.run();
+        }
     }
 
     // Add copy button to code blocks
@@ -53,6 +64,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add smooth scrolling
     addSmoothScrolling();
+
+    // Add search functionality
+    addSearchFunctionality();
+
+    // Add table of contents highlighting
+    addTocHighlighting();
 });
 
 // Add copy buttons to code blocks
@@ -190,12 +207,6 @@ function addTocHighlighting() {
         });
     });
 }
-
-// Initialize additional features when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    addSearchFunctionality();
-    addTocHighlighting();
-});
 
 // Export functions for potential external use
 window.AIUtilsDocs = {

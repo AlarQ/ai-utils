@@ -181,37 +181,6 @@
 <li><strong>Async-First</strong>: Built on Tokio for high-performance concurrent operations</li>
 <li><strong>Type Safety</strong>: Full Rust type safety with comprehensive error handling</li>
 </ul>
-<h2 id="-architecture"><a class="header" href="#-architecture">🏗️ Architecture</a></h2>
-<pre><code class="language-mermaid">graph TB
-    subgraph "AI Utils Core"
-        A[Application] --&gt; B[OpenAI Service]
-        A --&gt; C[Qdrant Service]
-        A --&gt; D[Text Splitter]
-        A --&gt; E[Langfuse Service]
-        A --&gt; F[Common Utils]
-    end
-    
-    subgraph "External Services"
-        B --&gt; G[OpenAI API]
-        C --&gt; H[Qdrant Database]
-        E --&gt; I[Langfuse Platform]
-    end
-    
-    subgraph "Data Flow"
-        J[Input Data] --&gt; D
-        D --&gt; K[Chunked Text]
-        K --&gt; B
-        B --&gt; L[Embeddings]
-        L --&gt; C
-        C --&gt; M[Vector Search Results]
-        M --&gt; A
-    end
-    
-    style A fill:#e1f5fe
-    style G fill:#ffebee
-    style H fill:#e8f5e8
-    style I fill:#fff3e0
-</code></pre>
 <h2 id="-use-cases"><a class="header" href="#-use-cases">🎯 Use Cases</a></h2>
 <ul>
 <li><strong>Chat Bots</strong>: Build conversational AI agents with memory and context</li>
@@ -256,13 +225,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <ul>
 <li><a href="getting-started/installation.html">Installation Guide</a> - Set up your development environment</li>
 <li><a href="getting-started/quick-start.html">Quick Start</a> - Build your first AI agent</li>
-<li><a href="core-concepts/architecture.html">Architecture Overview</a> - Understand the system design</li>
-<li><a href="examples/">Examples</a> - See real-world usage patterns</li>
+<li><a href="getting-started/configuration.html">Configuration</a> - Learn about advanced configuration options</li>
 </ul>
-<h2 id="-contributing"><a class="header" href="#-contributing">🤝 Contributing</a></h2>
-<p>We welcome contributions! See our <a href="contributing/development-setup.html">contributing guide</a> for details on how to get started.</p>
-<h2 id="-license"><a class="header" href="#-license">📄 License</a></h2>
-<p>This project is licensed under the MIT License - see the LICENSE file for details.</p>
 
                     </main>
 

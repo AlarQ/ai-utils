@@ -8,10 +8,6 @@
 - [Quick Start](getting-started/quick-start.md)
 - [Configuration](getting-started/configuration.md)
 
-# Core Concepts
-
-- [Architecture Overview](core-concepts/architecture.md)
-
 # Modules
 
-- [Modules](modules/overview.md) 
+- [Overview](modules/overview.md) 

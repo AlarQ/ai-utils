@@ -211,7 +211,5 @@ let response = openai.completion(messages, model).await?;
 
 ## Next Steps
 
-- [Architecture Overview](../core-concepts/architecture.md) - Understand the system design
-- [OpenAI Integration](../modules/openai/overview.md) - Learn about AI capabilities
-- [Vector Search](../modules/qdrant/overview.md) - Explore semantic search
-- [Examples](../examples/) - See more complex use cases
+- [Configuration](../getting-started/configuration.md) - Learn about advanced configuration options
+- [Installation](../getting-started/installation.md) - Set up your development environment

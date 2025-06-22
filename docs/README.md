@@ -32,14 +32,12 @@ After building, the documentation will be available in the `book/` directory. Op
 docs/
 ├── src/                    # Source markdown files
 │   ├── README.md          # Main documentation page
-│   ├── SUMMARY.md         # Table of contents
 │   ├── getting-started/   # Installation and setup guides
-│   ├── core-concepts/     # Architecture and design principles
-│   ├── modules/           # Module-specific documentation
-│   ├── examples/          # Code examples and tutorials
-│   ├── api/               # API reference
-│   ├── deployment/        # Production deployment guides
-│   └── contributing/      # Development and contribution guides
+│   │   ├── configuration.md
+│   │   ├── installation.md
+│   │   └── quick-start.md
+│   └── modules/           # Module-specific documentation
+│       └── overview.md
 ├── styles/                # Custom CSS styles
 ├── scripts/               # JavaScript files (Mermaid, etc.)
 └── images/                # Documentation images
@@ -102,7 +100,7 @@ When contributing to the documentation:
 2. Use Mermaid diagrams for visual explanations
 3. Include practical code examples
 4. Test that the documentation builds correctly
-5. Update the table of contents in `SUMMARY.md`
+5. Update the table of contents in `book.toml` if adding new pages
 
 ## Local Development
 

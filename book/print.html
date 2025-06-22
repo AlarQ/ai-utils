@@ -182,37 +182,6 @@
 <li><strong>Async-First</strong>: Built on Tokio for high-performance concurrent operations</li>
 <li><strong>Type Safety</strong>: Full Rust type safety with comprehensive error handling</li>
 </ul>
-<h2 id="-architecture"><a class="header" href="#-architecture">🏗️ Architecture</a></h2>
-<pre><code class="language-mermaid">graph TB
-    subgraph "AI Utils Core"
-        A[Application] --&gt; B[OpenAI Service]
-        A --&gt; C[Qdrant Service]
-        A --&gt; D[Text Splitter]
-        A --&gt; E[Langfuse Service]
-        A --&gt; F[Common Utils]
-    end
-    
-    subgraph "External Services"
-        B --&gt; G[OpenAI API]
-        C --&gt; H[Qdrant Database]
-        E --&gt; I[Langfuse Platform]
-    end
-    
-    subgraph "Data Flow"
-        J[Input Data] --&gt; D
-        D --&gt; K[Chunked Text]
-        K --&gt; B
-        B --&gt; L[Embeddings]
-        L --&gt; C
-        C --&gt; M[Vector Search Results]
-        M --&gt; A
-    end
-    
-    style A fill:#e1f5fe
-    style G fill:#ffebee
-    style H fill:#e8f5e8
-    style I fill:#fff3e0
-</code></pre>
 <h2 id="-use-cases"><a class="header" href="#-use-cases">🎯 Use Cases</a></h2>
 <ul>
 <li><strong>Chat Bots</strong>: Build conversational AI agents with memory and context</li>
@@ -257,13 +226,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <ul>
 <li><a href="getting-started/installation.html">Installation Guide</a> - Set up your development environment</li>
 <li><a href="getting-started/quick-start.html">Quick Start</a> - Build your first AI agent</li>
-<li><a href="core-concepts/architecture.html">Architecture Overview</a> - Understand the system design</li>
-<li><a href="examples/">Examples</a> - See real-world usage patterns</li>
+<li><a href="getting-started/configuration.html">Configuration</a> - Learn about advanced configuration options</li>
 </ul>
-<h2 id="-contributing"><a class="header" href="#-contributing">🤝 Contributing</a></h2>
-<p>We welcome contributions! See our <a href="contributing/development-setup.html">contributing guide</a> for details on how to get started.</p>
-<h2 id="-license"><a class="header" href="#-license">📄 License</a></h2>
-<p>This project is licensed under the MIT License - see the LICENSE file for details.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
 <p>This guide will help you set up AI Utils in your Rust project.</p>
 <h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
@@ -340,7 +304,6 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <ul>
 <li><a href="getting-started/quick-start.html">Quick Start Guide</a> - Build your first AI agent</li>
 <li><a href="getting-started/configuration.html">Configuration</a> - Learn about advanced configuration options</li>
-<li><a href="getting-started/../examples/">Examples</a> - See real-world usage patterns</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
 <p>Get up and running with AI Utils in minutes. This guide will walk you through building a simple AI agent that can process text and answer questions.</p>
@@ -538,10 +501,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <span class="boring">}</span></code></pre></pre>
 <h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
 <ul>
-<li><a href="getting-started/../core-concepts/architecture.html">Architecture Overview</a> - Understand the system design</li>
-<li><a href="getting-started/../modules/openai/overview.html">OpenAI Integration</a> - Learn about AI capabilities</li>
-<li><a href="getting-started/../modules/qdrant/overview.html">Vector Search</a> - Explore semantic search</li>
-<li><a href="getting-started/../examples/">Examples</a> - See more complex use cases</li>
+<li><a href="getting-started/../getting-started/configuration.html">Configuration</a> - Learn about advanced configuration options</li>
+<li><a href="getting-started/../getting-started/installation.html">Installation</a> - Set up your development environment</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
 <p>This guide covers all configuration options for AI Utils, including environment variables, service settings, and performance tuning.</p>
@@ -862,239 +823,6 @@ impl Metrics {
 <li>Use HTTPS for all external communications</li>
 <li>Implement rate limiting</li>
 </ul>
-<h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
-<ul>
-<li><a href="getting-started/../deployment/production-setup.html">Production Setup</a> - Deploy to production</li>
-<li><a href="getting-started/../deployment/performance-tuning.html">Performance Tuning</a> - Optimize performance</li>
-<li><a href="getting-started/../deployment/environment-variables.html">Environment Variables</a> - Advanced environment configuration</li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
-<p>AI Utils is designed with a modular, service-oriented architecture that provides a clean separation of concerns while maintaining high performance and flexibility.</p>
-<h2 id="system-architecture"><a class="header" href="#system-architecture">System Architecture</a></h2>
-<pre><code class="language-mermaid">graph TB
-    subgraph "Application Layer"
-        A[Your Application] --&gt; B[AI Utils Core]
-    end
-    
-    subgraph "Service Layer"
-        B --&gt; C[OpenAI Service]
-        B --&gt; D[Qdrant Service]
-        B --&gt; E[Text Splitter]
-        B --&gt; F[Langfuse Service]
-        B --&gt; G[Common Utils]
-    end
-    
-    subgraph "External APIs"
-        C --&gt; H[OpenAI API]
-        D --&gt; I[Qdrant Database]
-        F --&gt; J[Langfuse Platform]
-    end
-    
-    subgraph "Data Flow"
-        K[Input Data] --&gt; E
-        E --&gt; L[Chunked Text]
-        L --&gt; C
-        C --&gt; M[Embeddings/Completions]
-        M --&gt; D
-        D --&gt; N[Vector Search Results]
-        N --&gt; A
-    end
-    
-    style A fill:#e3f2fd
-    style B fill:#f3e5f5
-    style H fill:#ffebee
-    style I fill:#e8f5e8
-    style J fill:#fff3e0
-</code></pre>
-<h2 id="core-components"><a class="header" href="#core-components">Core Components</a></h2>
-<h3 id="1-service-layer"><a class="header" href="#1-service-layer">1. Service Layer</a></h3>
-<p>The service layer provides the main interfaces for interacting with external APIs and services:</p>
-<h4 id="openai-service-1"><a class="header" href="#openai-service-1">OpenAI Service</a></h4>
-<ul>
-<li><strong>Purpose</strong>: Handles all OpenAI API interactions</li>
-<li><strong>Capabilities</strong>: Chat completions, embeddings, image generation, audio transcription</li>
-<li><strong>Key Features</strong>:
-<ul>
-<li>Async operations with proper error handling</li>
-<li>Support for multiple models (GPT-3.5, GPT-4, GPT-4 Vision)</li>
-<li>Multimodal capabilities (text + image)</li>
-</ul>
-</li>
-</ul>
-<h4 id="qdrant-service-1"><a class="header" href="#qdrant-service-1">Qdrant Service</a></h4>
-<ul>
-<li><strong>Purpose</strong>: Vector database operations for semantic search</li>
-<li><strong>Capabilities</strong>: Collection management, vector storage, similarity search</li>
-<li><strong>Key Features</strong>:
-<ul>
-<li>High-performance vector operations</li>
-<li>Metadata storage with vectors</li>
-<li>Configurable search parameters</li>
-</ul>
-</li>
-</ul>
-<h4 id="text-splitter-1"><a class="header" href="#text-splitter-1">Text Splitter</a></h4>
-<ul>
-<li><strong>Purpose</strong>: Intelligent text chunking for processing large documents</li>
-<li><strong>Capabilities</strong>: Token-aware splitting, overlap management, metadata preservation</li>
-<li><strong>Key Features</strong>:
-<ul>
-<li>Configurable chunk sizes</li>
-<li>Semantic boundary detection</li>
-<li>Token counting with tiktoken</li>
-</ul>
-</li>
-</ul>
-<h4 id="langfuse-service"><a class="header" href="#langfuse-service">Langfuse Service</a></h4>
-<ul>
-<li><strong>Purpose</strong>: AI application monitoring and observability</li>
-<li><strong>Capabilities</strong>: Trace tracking, span management, performance monitoring</li>
-<li><strong>Key Features</strong>:
-<ul>
-<li>Request/response logging</li>
-<li>Performance metrics</li>
-<li>Error tracking</li>
-</ul>
-</li>
-</ul>
-<h3 id="2-common-utilities"><a class="header" href="#2-common-utilities">2. Common Utilities</a></h3>
-<p>Shared utilities and types used across all services:</p>
-<ul>
-<li><strong>Error Handling</strong>: Centralized error types and handling</li>
-<li><strong>Base64 Encoding</strong>: Image and binary data processing</li>
-<li><strong>Image Processing</strong>: Image manipulation and format conversion</li>
-<li><strong>Common Types</strong>: Shared data structures and enums</li>
-</ul>
-<h2 id="data-flow-patterns"><a class="header" href="#data-flow-patterns">Data Flow Patterns</a></h2>
-<h3 id="1-document-processing-pipeline"><a class="header" href="#1-document-processing-pipeline">1. Document Processing Pipeline</a></h3>
-<pre><code class="language-mermaid">sequenceDiagram
-    participant App as Application
-    participant TS as Text Splitter
-    participant OAI as OpenAI Service
-    participant QD as Qdrant Service
-    
-    App-&gt;&gt;TS: Split document
-    TS-&gt;&gt;TS: Tokenize and chunk
-    TS-&gt;&gt;App: Return chunks
-    
-    loop For each chunk
-        App-&gt;&gt;OAI: Generate embeddings
-        OAI-&gt;&gt;App: Return embeddings
-        App-&gt;&gt;QD: Store vectors
-        QD-&gt;&gt;App: Confirm storage
-    end
-</code></pre>
-<h3 id="2-query-processing-pipeline"><a class="header" href="#2-query-processing-pipeline">2. Query Processing Pipeline</a></h3>
-<pre><code class="language-mermaid">sequenceDiagram
-    participant User as User
-    participant App as Application
-    participant OAI as OpenAI Service
-    participant QD as Qdrant Service
-    
-    User-&gt;&gt;App: Ask question
-    App-&gt;&gt;OAI: Generate query embeddings
-    OAI-&gt;&gt;App: Return embeddings
-    App-&gt;&gt;QD: Search similar vectors
-    QD-&gt;&gt;App: Return relevant chunks
-    App-&gt;&gt;OAI: Generate answer with context
-    OAI-&gt;&gt;App: Return answer
-    App-&gt;&gt;User: Provide response
-</code></pre>
-<h3 id="3-multimodal-processing"><a class="header" href="#3-multimodal-processing">3. Multimodal Processing</a></h3>
-<pre><code class="language-mermaid">sequenceDiagram
-    participant App as Application
-    participant OAI as OpenAI Service
-    
-    App-&gt;&gt;App: Load image
-    App-&gt;&gt;App: Encode to base64
-    App-&gt;&gt;OAI: Send text + image
-    OAI-&gt;&gt;OAI: Process multimodal input
-    OAI-&gt;&gt;App: Return analysis
-</code></pre>
-<h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
-<h3 id="1-async-first-design"><a class="header" href="#1-async-first-design">1. Async-First Design</a></h3>
-<ul>
-<li>All operations are asynchronous using Tokio</li>
-<li>Non-blocking I/O for high performance</li>
-<li>Proper resource management</li>
-</ul>
-<h3 id="2-error-handling"><a class="header" href="#2-error-handling">2. Error Handling</a></h3>
-<ul>
-<li>Comprehensive error types with <code>thiserror</code></li>
-<li>Graceful degradation</li>
-<li>Detailed error context</li>
-</ul>
-<h3 id="3-type-safety"><a class="header" href="#3-type-safety">3. Type Safety</a></h3>
-<ul>
-<li>Strong typing throughout the codebase</li>
-<li>Rust's ownership system for memory safety</li>
-<li>Compile-time guarantees</li>
-</ul>
-<h3 id="4-modularity"><a class="header" href="#4-modularity">4. Modularity</a></h3>
-<ul>
-<li>Clear separation between services</li>
-<li>Minimal coupling between components</li>
-<li>Easy to extend and customize</li>
-</ul>
-<h3 id="5-configuration"><a class="header" href="#5-configuration">5. Configuration</a></h3>
-<ul>
-<li>Environment-based configuration</li>
-<li>Sensible defaults</li>
-<li>Easy to override for different environments</li>
-</ul>
-<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
-<h3 id="1-connection-pooling"><a class="header" href="#1-connection-pooling">1. Connection Pooling</a></h3>
-<ul>
-<li>Reuse HTTP connections where possible</li>
-<li>Efficient resource utilization</li>
-<li>Reduced latency</li>
-</ul>
-<h3 id="2-batch-operations"><a class="header" href="#2-batch-operations">2. Batch Operations</a></h3>
-<ul>
-<li>Support for batch processing where available</li>
-<li>Reduced API calls</li>
-<li>Better throughput</li>
-</ul>
-<h3 id="3-caching"><a class="header" href="#3-caching">3. Caching</a></h3>
-<ul>
-<li>Embedding caching for repeated text</li>
-<li>Vector search result caching</li>
-<li>Configurable cache strategies</li>
-</ul>
-<h2 id="security"><a class="header" href="#security">Security</a></h2>
-<h3 id="1-api-key-management"><a class="header" href="#1-api-key-management">1. API Key Management</a></h3>
-<ul>
-<li>Environment variable configuration</li>
-<li>No hardcoded secrets</li>
-<li>Secure key rotation support</li>
-</ul>
-<h3 id="2-data-privacy"><a class="header" href="#2-data-privacy">2. Data Privacy</a></h3>
-<ul>
-<li>Local processing where possible</li>
-<li>Minimal data transmission</li>
-<li>Configurable data retention</li>
-</ul>
-<h3 id="3-input-validation"><a class="header" href="#3-input-validation">3. Input Validation</a></h3>
-<ul>
-<li>Comprehensive input sanitization</li>
-<li>Rate limiting support</li>
-<li>Malicious input protection</li>
-</ul>
-<h2 id="extensibility"><a class="header" href="#extensibility">Extensibility</a></h2>
-<p>The architecture is designed to be easily extensible:</p>
-<ul>
-<li><strong>New Services</strong>: Add new service modules following the existing patterns</li>
-<li><strong>Custom Models</strong>: Support for different AI models and providers</li>
-<li><strong>Storage Backends</strong>: Pluggable vector database implementations</li>
-<li><strong>Monitoring</strong>: Extensible monitoring and logging</li>
-</ul>
-<h2 id="next-steps-3"><a class="header" href="#next-steps-3">Next Steps</a></h2>
-<ul>
-<li><a href="core-concepts/async-operations.html">Async Operations</a> - Learn about async patterns</li>
-<li><a href="core-concepts/error-handling.html">Error Handling</a> - Understand error management</li>
-<li><a href="core-concepts/../modules/openai/overview.html">OpenAI Integration</a> - Deep dive into AI capabilities</li>
-<li><a href="core-concepts/../modules/qdrant/overview.html">Vector Search</a> - Explore semantic search</li>
-</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="modules-overview"><a class="header" href="#modules-overview">Modules Overview</a></h1>
 <p>AI Utils is organized into several core modules, each providing a set of capabilities for building AI agents. Here's a high-level overview of each module:</p>
 <hr />
@@ -1123,7 +851,7 @@ impl Metrics {
 </li>
 </ul>
 <hr />
-<h2 id="text-splitter-2"><a class="header" href="#text-splitter-2">Text Splitter</a></h2>
+<h2 id="text-splitter-1"><a class="header" href="#text-splitter-1">Text Splitter</a></h2>
 <ul>
 <li><strong>Description:</strong> Advanced text chunking and tokenization for processing large documents.</li>
 <li><strong>Key Features:</strong>

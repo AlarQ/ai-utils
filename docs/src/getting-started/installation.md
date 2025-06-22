@@ -94,4 +94,3 @@ cargo run
 
 - [Quick Start Guide](quick-start.md) - Build your first AI agent
 - [Configuration](configuration.md) - Learn about advanced configuration options
-- [Examples](../examples/) - See real-world usage patterns

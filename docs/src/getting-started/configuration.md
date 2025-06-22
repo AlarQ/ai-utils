@@ -346,9 +346,3 @@ impl Metrics {
 - Validate all inputs
 - Use HTTPS for all external communications
 - Implement rate limiting
-
-## Next Steps
-
-- [Production Setup](../deployment/production-setup.md) - Deploy to production
-- [Performance Tuning](../deployment/performance-tuning.md) - Optimize performance
-- [Environment Variables](../deployment/environment-variables.md) - Advanced environment configuration

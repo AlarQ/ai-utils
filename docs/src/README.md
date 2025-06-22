@@ -11,39 +11,6 @@ AI Utils is a comprehensive Rust library designed to provide all the essential t
 - **Async-First**: Built on Tokio for high-performance concurrent operations
 - **Type Safety**: Full Rust type safety with comprehensive error handling
 
-## 🏗️ Architecture
-
-```mermaid
-graph TB
-    subgraph "AI Utils Core"
-        A[Application] --> B[OpenAI Service]
-        A --> C[Qdrant Service]
-        A --> D[Text Splitter]
-        A --> E[Langfuse Service]
-        A --> F[Common Utils]
-    end
-    
-    subgraph "External Services"
-        B --> G[OpenAI API]
-        C --> H[Qdrant Database]
-        E --> I[Langfuse Platform]
-    end
-    
-    subgraph "Data Flow"
-        J[Input Data] --> D
-        D --> K[Chunked Text]
-        K --> B
-        B --> L[Embeddings]
-        L --> C
-        C --> M[Vector Search Results]
-        M --> A
-    end
-    
-    style A fill:#e1f5fe
-    style G fill:#ffebee
-    style H fill:#e8f5e8
-    style I fill:#fff3e0
-```
 
 ## 🎯 Use Cases
 
@@ -99,13 +66,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 - [Installation Guide](getting-started/installation.md) - Set up your development environment
 - [Quick Start](getting-started/quick-start.md) - Build your first AI agent
-- [Architecture Overview](core-concepts/architecture.md) - Understand the system design
-- [Examples](examples/) - See real-world usage patterns
-
-## 🤝 Contributing
-
-We welcome contributions! See our [contributing guide](contributing/development-setup.md) for details on how to get started.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+- [Configuration](getting-started/configuration.md) - Learn about advanced configuration options
