@@ -10,6 +10,7 @@ use qdrant_client::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::error::Error;
 use crate::openai::{AIService, OpenAIService};
 
 pub struct QdrantService {
@@ -18,16 +19,21 @@ pub struct QdrantService {
 }
 
 impl QdrantService {
-    pub fn new() -> Self {
-        let url = env::var("QDRANT_URL").unwrap();
-        let api_key = env::var("QDRANT_API_KEY").unwrap();
+    pub fn new() -> Result<Self, Error> {
+        let url = env::var("QDRANT_URL")
+            .map_err(|_| Error::Config("QDRANT_URL must be set".to_string()))?;
+        let api_key = env::var("QDRANT_API_KEY")
+            .map_err(|_| Error::Config("QDRANT_API_KEY must be set".to_string()))?;
 
-        let client = Qdrant::from_url(&url).api_key(api_key).build().unwrap();
+        let client = Qdrant::from_url(&url)
+            .api_key(api_key)
+            .build()
+            .map_err(|e| Error::Other(format!("Failed to create Qdrant client: {}", e)))?;
 
-        Self {
+        Ok(Self {
             client,
-            openai_service: OpenAIService::new(),
-        }
+            openai_service: OpenAIService::new()?,
+        })
     }
 
     pub async fn list_collections(&self) -> Result<Vec<String>, QdrantError> {
