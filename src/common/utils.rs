@@ -1,112 +1,190 @@
 use base64::Engine;
-use std::fs;
+use futures::future::try_join_all;
+use image::GenericImageView;
 use std::io::Cursor;
 
 use super::errors::CommonError;
-use super::types::Base64Image;
+use super::types::{Base64Image, ImageFormat, ImageMetadata};
 
-pub fn read_png_to_base64(path: &str) -> Result<String, CommonError> {
-    let image = image::open(path)
+// --- ASYNC VERSIONS ---
+use tokio::fs as async_fs;
+use tokio::io::AsyncReadExt;
+
+/// Generic async function to convert a single image to base64
+pub async fn read_image_to_base64(path: &str, format: ImageFormat) -> Result<String, CommonError> {
+    let mut file = async_fs::File::open(path)
+        .await
         .map_err(|e| CommonError::FileRead(format!("Failed to open image at {}: {}", path, e)))?;
 
-    let mut buffer = Cursor::new(Vec::new());
-    image
-        .write_to(&mut buffer, image::ImageOutputFormat::Png)
-        .map_err(|e| CommonError::Image(e))?;
+    let mut buf = Vec::new();
+    file.read_to_end(&mut buf)
+        .await
+        .map_err(|e| CommonError::FileRead(format!("Failed to read image at {}: {}", path, e)))?;
 
-    let bytes = buffer.into_inner();
-    Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
+    // Process image in blocking thread to avoid blocking async runtime
+    let format_clone = format;
+
+    let base64 = tokio::task::spawn_blocking(move || {
+        let image = image::load_from_memory(&buf).map_err(|e| CommonError::Image(e))?;
+
+        let mut buffer = Cursor::new(Vec::new());
+        image
+            .write_to(&mut buffer, format_clone.to_image_format())
+            .map_err(|e| CommonError::Image(e))?;
+
+        let bytes = buffer.into_inner();
+        Ok::<String, CommonError>(base64::engine::general_purpose::STANDARD.encode(bytes))
+    })
+    .await
+    .map_err(|e| CommonError::FileRead(format!("Task join error: {}", e)))??;
+
+    Ok(base64)
 }
 
-pub fn read_pngs_to_base64(directory: &str) -> Result<Vec<Base64Image>, CommonError> {
-    let mut base64_images = Vec::new();
+/// Process a single image file with metadata extraction
+async fn process_image_file(path: String, format: ImageFormat) -> Result<Base64Image, CommonError> {
+    let base64 = read_image_to_base64(&path, format).await?;
 
-    let entries = fs::read_dir(directory).map_err(|e| {
+    let name = std::path::Path::new(&path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| CommonError::InvalidPath(format!("Invalid filename: {}", path)))?
+        .to_string();
+
+    // Extract metadata in parallel
+    let metadata_future = tokio::task::spawn_blocking({
+        let path_clone = path.clone();
+        move || {
+            let image = image::open(&path_clone).ok();
+            if let Some(img) = image {
+                let (width, height) = img.dimensions();
+                Some((width, height))
+            } else {
+                None
+            }
+        }
+    });
+
+    let mut base64_image = Base64Image::new(name, base64, format)
+        .map_err(|e| CommonError::FileRead(format!("Failed to create Base64Image: {}", e)))?;
+
+    // Add metadata if available
+    if let Ok(Some((width, height))) = metadata_future.await {
+        let mut image_metadata = ImageMetadata::default();
+        image_metadata.width = Some(width);
+        image_metadata.height = Some(height);
+        base64_image.set_metadata(image_metadata);
+    }
+
+    Ok(base64_image)
+}
+
+/// Generic async function to convert all images of a specific format in a directory to base64 with parallel processing
+pub async fn read_images_to_base64(
+    directory: &str,
+    format: ImageFormat,
+) -> Result<Vec<Base64Image>, CommonError> {
+    // Collect all valid file paths first
+    let mut valid_paths = Vec::new();
+    let mut entries = async_fs::read_dir(directory).await.map_err(|e| {
         CommonError::DirectoryRead(format!("Failed to read directory {}: {}", directory, e))
     })?;
 
-    for entry in entries {
-        let entry = entry.map_err(|e| {
-            CommonError::DirectoryRead(format!("Failed to read directory entry: {}", e))
-        })?;
-
+    while let Some(entry) = entries
+        .next_entry()
+        .await
+        .map_err(|e| CommonError::DirectoryRead(format!("Failed to read directory entry: {}", e)))?
+    {
         let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |ext| ext == "png") {
-            let path_str = path
-                .to_str()
-                .ok_or_else(|| CommonError::InvalidPath(format!("Invalid path: {:?}", path)))?;
 
-            let base64 = read_png_to_base64(path_str)?;
+        if path.is_file() {
+            let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
 
-            let name = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .ok_or_else(|| CommonError::InvalidPath(format!("Invalid filename: {:?}", path)))?
-                .to_string();
-
-            base64_images.push(Base64Image { name, base64 });
+            if let Some(file_format) = ImageFormat::from_extension(extension) {
+                if file_format == format {
+                    let path_str = path
+                        .to_str()
+                        .ok_or_else(|| {
+                            CommonError::InvalidPath(format!("Invalid path: {:?}", path))
+                        })?
+                        .to_string();
+                    valid_paths.push(path_str);
+                }
+            }
         }
     }
 
-    if base64_images.is_empty() {
+    if valid_paths.is_empty() {
         return Err(CommonError::NoValidFiles(format!(
-            "No PNG files found in directory: {}",
+            "No {} files found in directory: {}",
+            format.extension(),
             directory
         )));
     }
 
-    Ok(base64_images)
+    // Process files in parallel with configurable concurrency
+    let max_concurrent = std::env::var("IMAGE_PROCESSING_CONCURRENCY")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(4); // Default to 4 concurrent tasks
+
+    let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(max_concurrent));
+
+    let futures: Vec<_> = valid_paths
+        .into_iter()
+        .map(|path| {
+            let semaphore = semaphore.clone();
+            let format_clone = format;
+
+            async move {
+                let _permit = semaphore
+                    .acquire()
+                    .await
+                    .map_err(|e| CommonError::FileRead(format!("Semaphore error: {}", e)))?;
+                process_image_file(path, format_clone).await
+            }
+        })
+        .collect();
+
+    // Wait for all tasks to complete
+    let results = try_join_all(futures).await?;
+
+    Ok(results)
 }
 
-pub fn read_webp_to_base64(path: &str) -> Result<String, CommonError> {
-    let image = image::open(path)
-        .map_err(|e| CommonError::FileRead(format!("Failed to open image at {}: {}", path, e)))?;
+/// Parallel processing with custom concurrency limit
+pub async fn read_images_to_base64_parallel(
+    directory: &str,
+    format: ImageFormat,
+    max_concurrent: usize,
+) -> Result<Vec<Base64Image>, CommonError> {
+    // Set environment variable for this call
+    std::env::set_var("IMAGE_PROCESSING_CONCURRENCY", max_concurrent.to_string());
 
-    let mut buffer = Cursor::new(Vec::new());
-    image
-        .write_to(&mut buffer, image::ImageOutputFormat::WebP)
-        .map_err(|e| CommonError::Image(e))?;
+    let result = read_images_to_base64(directory, format).await;
 
-    let bytes = buffer.into_inner();
-    Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
+    // Clean up environment variable
+    std::env::remove_var("IMAGE_PROCESSING_CONCURRENCY");
+
+    result
 }
 
-pub fn read_webps_to_base64(directory: &str) -> Result<Vec<Base64Image>, CommonError> {
-    let mut base64_images = Vec::new();
+/// Convenience function for PNG images
+pub async fn read_png_to_base64(path: &str) -> Result<String, CommonError> {
+    read_image_to_base64(path, ImageFormat::Png).await
+}
 
-    let entries = fs::read_dir(directory).map_err(|e| {
-        CommonError::DirectoryRead(format!("Failed to read directory {}: {}", directory, e))
-    })?;
+/// Convenience function for PNG images in directory
+pub async fn read_pngs_to_base64(directory: &str) -> Result<Vec<Base64Image>, CommonError> {
+    read_images_to_base64(directory, ImageFormat::Png).await
+}
 
-    for entry in entries {
-        let entry = entry.map_err(|e| {
-            CommonError::DirectoryRead(format!("Failed to read directory entry: {}", e))
-        })?;
+/// Convenience function for WebP images
+pub async fn read_webp_to_base64(path: &str) -> Result<String, CommonError> {
+    read_image_to_base64(path, ImageFormat::WebP).await
+}
 
-        let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |ext| ext == "webp") {
-            let path_str = path
-                .to_str()
-                .ok_or_else(|| CommonError::InvalidPath(format!("Invalid path: {:?}", path)))?;
-
-            let base64 = read_webp_to_base64(path_str)?;
-
-            let name = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .ok_or_else(|| CommonError::InvalidPath(format!("Invalid filename: {:?}", path)))?
-                .to_string();
-
-            base64_images.push(Base64Image { name, base64 });
-        }
-    }
-
-    if base64_images.is_empty() {
-        return Err(CommonError::NoValidFiles(format!(
-            "No WebP files found in directory: {}",
-            directory
-        )));
-    }
-
-    Ok(base64_images)
+/// Convenience function for WebP images in directory
+pub async fn read_webps_to_base64(directory: &str) -> Result<Vec<Base64Image>, CommonError> {
+    read_images_to_base64(directory, ImageFormat::WebP).await
 }
