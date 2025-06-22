@@ -76,35 +76,22 @@ impl OpenAIService {
         Ok(())
     }
 
-    fn convert_message_to_openai(&self, message: &Message) -> ChatCompletionRequestMessage {
+    fn convert_message_to_openai(
+        &self,
+        message: &Message,
+    ) -> Result<ChatCompletionRequestMessage, Error> {
         match (&message.role, &message.content) {
             (MessageRole::System, MessageContent::Text(text)) => {
-                ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
+                Ok(ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
                     content: ChatCompletionRequestSystemMessageContent::Text(text.clone()),
                     name: message.name.clone(),
-                })
+                }))
             }
             (MessageRole::User, MessageContent::Text(text)) => {
-                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                Ok(ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
                     content: ChatCompletionRequestUserMessageContent::Text(text.clone()),
                     name: message.name.clone(),
-                })
-            }
-            (MessageRole::Assistant, MessageContent::Text(text)) => {
-                ChatCompletionRequestMessage::Assistant(
-                    async_openai::types::ChatCompletionRequestAssistantMessage {
-                        content: Some(
-                            async_openai::types::ChatCompletionRequestAssistantMessageContent::Text(
-                                text.clone(),
-                            ),
-                        ),
-                        name: message.name.clone(),
-                        tool_calls: None,
-                        function_call: None,
-                        audio: None,
-                        refusal: None,
-                    },
-                )
+                }))
             }
             (MessageRole::User, MessageContent::Image(images)) => {
                 let image_parts: Vec<ChatCompletionRequestUserMessageContentPart> = images
@@ -125,10 +112,10 @@ impl OpenAIService {
                     })
                     .collect();
 
-                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                Ok(ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
                     content: ChatCompletionRequestUserMessageContent::Array(image_parts),
                     name: message.name.clone(),
-                })
+                }))
             }
             (MessageRole::User, MessageContent::Mixed(parts)) => {
                 let content_parts: Vec<ChatCompletionRequestUserMessageContentPart> = parts
@@ -158,19 +145,16 @@ impl OpenAIService {
                     })
                     .collect();
 
-                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                Ok(ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
                     content: ChatCompletionRequestUserMessageContent::Array(content_parts),
                     name: message.name.clone(),
-                })
+                }))
             }
-            _ => {
-                // Fallback for unsupported combinations
-                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
-                    content: ChatCompletionRequestUserMessageContent::Text(
-                        "Unsupported message format".to_string(),
-                    ),
-                    name: message.name.clone(),
-                })
+            (role, content) => {
+                Err(Error::OpenAIValidation(format!(
+                    "Unsupported message role/content combination: {:?} with {:?}. Only User and System roles are supported.",
+                    role, content
+                )))
             }
         }
     }
@@ -188,9 +172,9 @@ impl OpenAIService {
                         role: match choice.message.role {
                             async_openai::types::Role::System => MessageRole::System,
                             async_openai::types::Role::User => MessageRole::User,
-                            async_openai::types::Role::Assistant => MessageRole::Assistant,
                             async_openai::types::Role::Tool => MessageRole::User, // fallback
                             async_openai::types::Role::Function => MessageRole::User, // fallback
+                            _ => MessageRole::User, // fallback for any other roles
                         },
                         content: MessageContent::Text(choice.message.content.unwrap_or_default()),
                         name: None,
@@ -236,7 +220,7 @@ impl OpenAIService {
         let request_messages: Vec<ChatCompletionRequestMessage> = messages
             .iter()
             .map(|msg| self.convert_message_to_openai(msg))
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
         let mut request = CreateChatCompletionRequest {
             model: options.model.to_string(),
@@ -321,7 +305,7 @@ impl AIService for OpenAIService {
         let request_messages: Vec<ChatCompletionRequestMessage> = messages
             .iter()
             .map(|msg| self.convert_message_to_openai(msg))
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
         let request = CreateChatCompletionRequest {
             model: model.to_string(),
