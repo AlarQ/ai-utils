@@ -349,4 +349,64 @@ mod tests {
         // Clean up
         let _ = qdrant_service.delete_collection(test_collection).await;
     }
+
+    #[tokio::test]
+    async fn test_qdrant_health_check() {
+        dotenv::dotenv().ok();
+
+        let url = env::var("QDRANT_URL").unwrap();
+        let api_key = env::var("QDRANT_API_KEY").unwrap();
+
+        let client = Qdrant::from_url(&url)
+            .api_key(api_key)
+            .timeout(Duration::from_secs(30))
+            .build()
+            .unwrap();
+
+        // Test health check
+        let health_result = client.health_check().await;
+        assert!(
+            health_result.is_ok(),
+            "Health check should succeed: {:?}",
+            health_result
+        );
+
+        // Verify health check response structure
+        match health_result {
+            Ok(health) => {
+                // Health check should return a success response
+                println!("Health check successful: {:?}", health);
+            }
+            Err(e) => {
+                panic!("Health check failed: {:?}", e);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_qdrant_health_check_with_invalid_url() {
+        // Test health check with invalid URL
+        let client = Qdrant::from_url("http://invalid-url-that-does-not-exist:6333")
+            .timeout(Duration::from_secs(5))
+            .build()
+            .unwrap();
+
+        let health_result = client.health_check().await;
+        assert!(
+            health_result.is_err(),
+            "Health check should fail with invalid URL"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_qdrant_health_check_timeout() {
+        // Test health check timeout behavior
+        let client = Qdrant::from_url("http://10.255.255.255:6333") // Non-routable IP
+            .timeout(Duration::from_millis(100)) // Very short timeout
+            .build()
+            .unwrap();
+
+        let health_result = client.health_check().await;
+        assert!(health_result.is_err(), "Health check should timeout");
+    }
 }

@@ -52,7 +52,6 @@ impl QdrantService {
     pub fn new(config: QdrantConfig) -> Result<Self, Error> {
         let client = Qdrant::from_url(&config.url)
             .api_key(config.api_key)
-            .timeout(std::time::Duration::from_secs(30))
             .build()
             .map_err(|e| Error::Other(format!("Failed to create Qdrant client: {}", e)))?;
 
