@@ -30,8 +30,8 @@ clap = { version = "4.4", features = ["derive"] }
 regex = "1.10"
 tiktoken-rs = { version = "0.5", optional = true }
 anyhow = "1.0"
-tracing = "0.1"
+tracing = "0.1" 
 tracing-subscriber = "0.3"
 env_logger = "0.10"
-qdrant-client = { version = "1.14.0", optional = true }
+qdrant-client = { version = "1.1.0", optional = true }
 dotenv = "0.15.0"
