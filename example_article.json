@@ -4,11 +4,11 @@
     "metadata": {
       "tokens": 977,
       "headers": {
-        "h1": [
-          "Indie Hacker's toolstack 2024"
-        ],
         "h2": [
           "Text editor(s)"
+        ],
+        "h1": [
+          "Indie Hacker's toolstack 2024"
         ]
       },
       "urls": [
@@ -42,12 +42,12 @@
     "metadata": {
       "tokens": 957,
       "headers": {
-        "h1": [
-          "Indie Hacker's toolstack 2024"
-        ],
         "h2": [
           "Text editor(s)",
           "General Workflow"
+        ],
+        "h1": [
+          "Indie Hacker's toolstack 2024"
         ],
         "h3": [
           "Managing tasks",
@@ -73,13 +73,13 @@
     "metadata": {
       "tokens": 936,
       "headers": {
-        "h1": [
-          "Indie Hacker's toolstack 2024"
-        ],
         "h2": [
           "Text editor(s)",
           "General Workflow",
           "Searching Web"
+        ],
+        "h1": [
+          "Indie Hacker's toolstack 2024"
         ],
         "h3": [
           "Calendar"
@@ -109,15 +109,15 @@
     "metadata": {
       "tokens": 952,
       "headers": {
-        "h1": [
-          "Indie Hacker's toolstack 2024"
-        ],
         "h2": [
           "Text editor(s)",
           "General Workflow",
           "Searching Web",
           "Graphic Design",
           "Programming"
+        ],
+        "h1": [
+          "Indie Hacker's toolstack 2024"
         ]
       },
       "urls": [
@@ -146,9 +146,6 @@
     "metadata": {
       "tokens": 922,
       "headers": {
-        "h1": [
-          "Indie Hacker's toolstack 2024"
-        ],
         "h2": [
           "Text editor(s)",
           "General Workflow",
@@ -157,6 +154,9 @@
           "Programming",
           "Macros and Automations",
           "Fun"
+        ],
+        "h1": [
+          "Indie Hacker's toolstack 2024"
         ]
       },
       "urls": [
@@ -182,9 +182,6 @@
     "metadata": {
       "tokens": 215,
       "headers": {
-        "h1": [
-          "Indie Hacker's toolstack 2024"
-        ],
         "h2": [
           "Text editor(s)",
           "General Workflow",
@@ -194,6 +191,9 @@
           "Macros and Automations",
           "Fun",
           "Summary"
+        ],
+        "h1": [
+          "Indie Hacker's toolstack 2024"
         ]
       },
       "urls": [],

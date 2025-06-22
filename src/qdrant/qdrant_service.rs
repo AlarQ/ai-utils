@@ -28,10 +28,16 @@ pub struct QdrantConfig {
 
 impl QdrantConfig {
     pub fn from_env() -> Result<Self, Error> {
-        let url = std::env::var("QDRANT_URL")
+        let mut url = std::env::var("QDRANT_URL")
             .map_err(|_| Error::Config("QDRANT_URL must be set".to_string()))?;
         let api_key = std::env::var("QDRANT_API_KEY")
             .map_err(|_| Error::Config("QDRANT_API_KEY must be set".to_string()))?;
+
+        // Convert HTTPS to HTTP for cloud Qdrant to avoid compression issues
+        if url.starts_with("https://") && url.contains("cloud.qdrant.io") {
+            url = url.replace("https://", "http://");
+        }
+
         Ok(Self { url, api_key })
     }
 }
@@ -46,6 +52,7 @@ impl QdrantService {
     pub fn new(config: QdrantConfig) -> Result<Self, Error> {
         let client = Qdrant::from_url(&config.url)
             .api_key(config.api_key)
+            .timeout(std::time::Duration::from_secs(30))
             .build()
             .map_err(|e| Error::Other(format!("Failed to create Qdrant client: {}", e)))?;
 
