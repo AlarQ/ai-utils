@@ -16,3 +16,4 @@ pub mod error;
 pub mod langfuse;
 pub mod openai;
 pub mod text_splitter;
+pub mod qdrant;

@@ -3,7 +3,7 @@ use std::io::Bytes;
 use async_openai::{
     config::OpenAIConfig,
     types::{
-        AudioInput, ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage, ChatCompletionRequestSystemMessage, ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent, ChatCompletionRequestUserMessageContentPart, CreateChatCompletionRequest, CreateImageRequestArgs, CreateTranscriptionRequestArgs, Image, ImageResponseFormat, ImageSize, ImageUrl, ResponseFormat
+        AudioInput, ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage, ChatCompletionRequestSystemMessage, ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent, ChatCompletionRequestUserMessageContentPart, CreateChatCompletionRequest, CreateEmbeddingRequestArgs, CreateImageRequestArgs, CreateTranscriptionRequestArgs, Image, ImageResponseFormat, ImageSize, ImageUrl, ResponseFormat
     },
     Client,
 };
@@ -16,7 +16,7 @@ use crate::openai::types::{ChatCompletion, OpenAIImageMessage, OpenAIMessage};
 use super::{OpenAIImageGenMessage, OpenAIModel};
 
 #[async_trait]
-pub trait OpenAIService: Send + Sync {
+pub trait AIService: Send + Sync {
     async fn completion(
         &self,
         messages: Vec<OpenAIMessage>,
@@ -33,13 +33,15 @@ pub trait OpenAIService: Send + Sync {
     async fn generate_image_url(&self, prompt: String) -> Result<String, Error>;
 
     async fn transcribe(&self, audio: Vec<u8>) -> Result<String, Error>;
+
+    async fn embed(&self, text: String) -> Result<Vec<f32>, Error>;
 }
 
-pub struct OpenAIServiceImpl {
+pub struct OpenAIService {
     client: Client<OpenAIConfig>,
 }
 
-impl OpenAIServiceImpl {
+impl OpenAIService {
     pub fn new() -> Self {
         let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set");
         let config = OpenAIConfig::new().with_api_key(api_key);
@@ -50,7 +52,7 @@ impl OpenAIServiceImpl {
 }
 
 #[async_trait]
-impl OpenAIService for OpenAIServiceImpl {
+impl AIService for OpenAIService {
     async fn completion(
         &self,
         messages: Vec<OpenAIMessage>,
@@ -171,6 +173,7 @@ impl OpenAIService for OpenAIServiceImpl {
             ..Default::default()
         };
 
+        println!(">>> Request: {:?}", request);
         let response = self
             .client
             .chat()
@@ -236,5 +239,21 @@ impl OpenAIService for OpenAIServiceImpl {
             .map_err(|e| Error::OpenAI(e))?;
 
         Ok(response.text)
+    }
+
+    async fn embed(&self, text: String) -> Result<Vec<f32>, Error> {
+        let request = CreateEmbeddingRequestArgs::default()
+            .model(OpenAIModel::TextEmbedding3Large.to_string())
+            .input(text)
+            .build()?;
+
+        let response = self
+            .client
+            .embeddings()
+            .create(request)
+            .await
+            .map_err(|e| Error::OpenAI(e))?;
+
+        Ok(response.data[0].embedding.clone())
     }
 }

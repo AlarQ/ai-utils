@@ -52,7 +52,7 @@ pub struct OpenAIImageUrl {
 }
 
 impl OpenAIImageUrl {
-    pub fn new(url: String, detail: Option<String>) -> Self {
+    pub fn new(url: &str, detail: Option<String>) -> Self {
         Self {
             url: format!("data:image/png;base64,{}", url),
             detail,
@@ -66,6 +66,13 @@ pub struct OpenAIImageMessage {
     pub content: Vec<OpenAIImageUrl>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+}
+#[derive(Serialize, Deserialize, Clone)]
+pub enum ImageType {
+    #[serde(rename = "url")]
+    Url,
+    #[serde(rename = "b64_json")]
+    B64Json,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -83,8 +90,12 @@ pub enum OpenAIModel {
     Gpt4oMini,
     #[serde(rename = "gpt-4o-transcribe")]
     Gpt4oTranscribe,
-    #[serde(rename = "gpt-1")]
-    Gpt1,
+    #[serde(rename = "gpt-4.1")]
+    Gpt41,
+    #[serde(rename = "text-embedding-3-large")]
+    TextEmbedding3Large,
+    #[serde(rename = "ft:gpt-4.1-mini-2025-04-14:alarqai:my-validated-data:BgbHnf3n")]
+    MyValidatedDataModel,
 }
 
 impl std::fmt::Display for OpenAIModel {
@@ -93,7 +104,9 @@ impl std::fmt::Display for OpenAIModel {
             OpenAIModel::Gpt4o => write!(f, "gpt-4o"),
             OpenAIModel::Gpt4oMini => write!(f, "gpt-4o-mini"),
             OpenAIModel::Gpt4oTranscribe => write!(f, "gpt-4o-transcribe"),
-            OpenAIModel::Gpt1 => write!(f, "gpt-1"),
+            OpenAIModel::Gpt41 => write!(f, "gpt-4.1"),
+            OpenAIModel::TextEmbedding3Large => write!(f, "text-embedding-3-large"),
+            OpenAIModel::MyValidatedDataModel => write!(f, "ft:gpt-4.1-mini-2025-04-14:alarqai:my-validated-data:BgbHnf3n"),
         }
     }
 }
