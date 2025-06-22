@@ -1,8 +1,9 @@
+#![allow(dead_code)]
+
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::PathBuf;
 use text_service::TextSplitter;
-use tracing_subscriber;
 
 mod text_service;
 
@@ -57,7 +58,7 @@ mod tests {
     use std::env;
 
     use super::*;
-    
+
     #[test]
     fn test() -> Result<()> {
         // Initialize tracing

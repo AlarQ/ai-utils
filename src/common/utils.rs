@@ -1,9 +1,7 @@
 use base64::Engine;
-use chrono::{DateTime, Utc};
 use image::ImageError;
 use std::fs;
 use std::io::Cursor;
-use uuid::Uuid;
 
 use super::types::Base64Image;
 

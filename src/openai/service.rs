@@ -1,19 +1,21 @@
-use std::io::Bytes;
-
 use async_openai::{
     config::OpenAIConfig,
     types::{
-        AudioInput, ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage, ChatCompletionRequestSystemMessage, ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent, ChatCompletionRequestUserMessageContentPart, CreateChatCompletionRequest, CreateEmbeddingRequestArgs, CreateImageRequestArgs, CreateTranscriptionRequestArgs, Image, ImageResponseFormat, ImageSize, ImageUrl, ResponseFormat
+        AudioInput, ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage,
+        ChatCompletionRequestSystemMessage, ChatCompletionRequestSystemMessageContent,
+        ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent,
+        ChatCompletionRequestUserMessageContentPart, CreateChatCompletionRequest,
+        CreateEmbeddingRequestArgs, CreateImageRequestArgs, CreateTranscriptionRequestArgs, Image,
+        ImageResponseFormat, ImageSize, ImageUrl,
     },
     Client,
 };
 use async_trait::async_trait;
-use serde_json;
 
 use crate::error::Error;
 use crate::openai::types::{ChatCompletion, OpenAIImageMessage, OpenAIMessage};
 
-use super::{OpenAIImageGenMessage, OpenAIModel};
+use super::OpenAIModel;
 
 #[async_trait]
 pub trait AIService: Send + Sync {
