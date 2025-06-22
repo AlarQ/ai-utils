@@ -11,4 +11,5 @@
 # Modules
 
 - [Overview](modules/overview.md)
-- [Langfuse](modules/langfuse.md) 
+- [Langfuse](modules/langfuse.md)
+- [Qdrant](modules/qdrant.md) 

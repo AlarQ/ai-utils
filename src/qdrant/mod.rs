@@ -8,8 +8,12 @@ mod tests {
 
     use qdrant_client::Qdrant;
 
+    #[cfg(feature = "openai")]
     use crate::openai::{AIService, OpenAIService};
     use crate::qdrant::qdrant_service::{PointInput, QdrantConfig, QdrantService};
+
+    // Import the constant for testing
+    use crate::qdrant::qdrant_service::TEXT_EMBEDDING_3_LARGE_DIMENSION;
 
     #[tokio::test]
     async fn test() {
@@ -38,6 +42,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "openai")]
     async fn test_openai_batch_embedding() {
         dotenv::dotenv().ok();
 
@@ -78,7 +83,8 @@ mod tests {
 
         // Verify each embedding has the expected dimension (for text-embedding-3-large)
         for embedding in &multiple_embeddings {
-            assert_eq!(embedding.len(), 3072); // text-embedding-3-large dimension
+            assert_eq!(embedding.len(), TEXT_EMBEDDING_3_LARGE_DIMENSION as usize);
+            // text-embedding-3-large dimension
         }
 
         // Verify embeddings are different for different texts (they should be semantically different)
@@ -116,6 +122,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "openai")]
     async fn test_qdrant_batch_upsert() {
         dotenv::dotenv().ok();
 
@@ -129,7 +136,7 @@ mod tests {
 
         // Create test collection
         qdrant_service
-            .create_collection(test_collection, 3072)
+            .create_collection(test_collection, TEXT_EMBEDDING_3_LARGE_DIMENSION)
             .await
             .expect("Failed to create test collection");
 
@@ -199,6 +206,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "openai")]
     async fn test_qdrant_batch_upsert_performance() {
         dotenv::dotenv().ok();
 
@@ -212,7 +220,7 @@ mod tests {
 
         // Create test collection
         qdrant_service
-            .create_collection(test_collection, 3072)
+            .create_collection(test_collection, TEXT_EMBEDDING_3_LARGE_DIMENSION)
             .await
             .expect("Failed to create test collection");
 
@@ -257,6 +265,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "openai")]
     async fn test_qdrant_upsert_points_uses_batch() {
         dotenv::dotenv().ok();
 
@@ -270,7 +279,7 @@ mod tests {
 
         // Create test collection
         qdrant_service
-            .create_collection(test_collection, 3072)
+            .create_collection(test_collection, TEXT_EMBEDDING_3_LARGE_DIMENSION)
             .await
             .expect("Failed to create test collection");
 
@@ -296,6 +305,46 @@ mod tests {
             .expect("Failed to search points");
 
         assert_eq!(search_results.len(), 2);
+
+        // Clean up
+        let _ = qdrant_service.delete_collection(test_collection).await;
+    }
+
+    #[tokio::test]
+    async fn test_qdrant_vector_operations() {
+        dotenv::dotenv().ok();
+
+        let config = QdrantConfig::from_env().expect("Qdrant config from env");
+        let qdrant_service = QdrantService::new(config).expect("Failed to create Qdrant service");
+        let test_collection = "test_vector_ops";
+
+        // Clean up any existing test collection
+        let _ = qdrant_service.delete_collection(test_collection).await;
+
+        // Create test collection
+        qdrant_service
+            .create_collection(test_collection, TEXT_EMBEDDING_3_LARGE_DIMENSION)
+            .await
+            .expect("Failed to create test collection");
+
+        // Create a test vector
+        let test_vector = vec![0.1; TEXT_EMBEDDING_3_LARGE_DIMENSION as usize];
+        let mut payload = HashMap::new();
+        payload.insert("test".to_string(), "vector_ops".to_string());
+
+        // Test upsert with vector
+        qdrant_service
+            .upsert_point_with_vector(test_collection, 1, test_vector.clone(), payload.clone())
+            .await
+            .expect("Failed to upsert point with vector");
+
+        // Test search with vector
+        let search_results = qdrant_service
+            .search_points_with_vector(test_collection.to_string(), test_vector, 10)
+            .await
+            .expect("Failed to search points with vector");
+
+        assert_eq!(search_results.len(), 1);
 
         // Clean up
         let _ = qdrant_service.delete_collection(test_collection).await;

@@ -3,11 +3,19 @@ name = "ai_utils"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["openai", "qdrant", "langfuse", "text-splitter"]
+openai = ["async-openai"]
+qdrant = ["qdrant-client"]
+langfuse = []
+text-splitter = ["tiktoken-rs"]
+full = ["openai", "qdrant", "langfuse", "text-splitter"]
+
 [dependencies]
 tokio = { version = "1.45.1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-async-openai = "0.28.1"
+async-openai = { version = "0.28.1", optional = true }
 uuid = { version = "1.17.0", features = ["v4", "serde"] }
 reqwest = { version = "0.12.18", features = ["json"] }
 async-trait = "0.1"
@@ -20,10 +28,10 @@ tempfile = "3.10"
 
 clap = { version = "4.4", features = ["derive"] }
 regex = "1.10"
-tiktoken-rs = "0.5"
+tiktoken-rs = { version = "0.5", optional = true }
 anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 env_logger = "0.10"
-qdrant-client = "1.1.0"
+qdrant-client = { version = "1.1.0", optional = true }
 dotenv = "0.15.0"
