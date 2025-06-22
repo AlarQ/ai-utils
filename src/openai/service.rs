@@ -6,29 +6,20 @@ use async_openai::{
         ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent,
         ChatCompletionRequestUserMessageContentPart, CreateChatCompletionRequest,
         CreateEmbeddingRequestArgs, CreateImageRequestArgs, CreateTranscriptionRequestArgs, Image,
-        ImageResponseFormat, ImageSize, ImageUrl,
+        ImageResponseFormat, ImageSize, ImageUrl as OpenAIImageUrl,
     },
     Client,
 };
 use async_trait::async_trait;
 
 use crate::error::Error;
-use crate::openai::types::{ChatCompletion, OpenAIImageMessage, OpenAIMessage};
-
-use super::OpenAIModel;
+use crate::openai::types::{ChatCompletion, Message, MessageContent, MessageRole, OpenAIModel};
 
 #[async_trait]
 pub trait AIService: Send + Sync {
     async fn completion(
         &self,
-        messages: Vec<OpenAIMessage>,
-        model: OpenAIModel,
-    ) -> Result<ChatCompletion, Error>;
-
-    async fn completion_image(
-        &self,
-        text_messages: Vec<OpenAIMessage>,
-        vision_messages: Vec<OpenAIImageMessage>,
+        messages: Vec<Message>,
         model: OpenAIModel,
     ) -> Result<ChatCompletion, Error>;
 
@@ -44,11 +35,142 @@ pub struct OpenAIService {
 }
 
 impl OpenAIService {
-    pub fn new() -> Self {
-        let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set");
+    pub fn new() -> Result<Self, Error> {
+        let api_key = std::env::var("OPENAI_API_KEY")
+            .map_err(|_| Error::Config("OPENAI_API_KEY must be set".to_string()))?;
         let config = OpenAIConfig::new().with_api_key(api_key);
-        Self {
+        Ok(Self {
             client: Client::with_config(config),
+        })
+    }
+
+    fn convert_message_to_openai(&self, message: &Message) -> ChatCompletionRequestMessage {
+        match (&message.role, &message.content) {
+            (MessageRole::System, MessageContent::Text(text)) => {
+                ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
+                    content: ChatCompletionRequestSystemMessageContent::Text(text.clone()),
+                    name: message.name.clone(),
+                })
+            }
+            (MessageRole::User, MessageContent::Text(text)) => {
+                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                    content: ChatCompletionRequestUserMessageContent::Text(text.clone()),
+                    name: message.name.clone(),
+                })
+            }
+            (MessageRole::Assistant, MessageContent::Text(text)) => {
+                ChatCompletionRequestMessage::Assistant(
+                    async_openai::types::ChatCompletionRequestAssistantMessage {
+                        content: Some(
+                            async_openai::types::ChatCompletionRequestAssistantMessageContent::Text(
+                                text.clone(),
+                            ),
+                        ),
+                        name: message.name.clone(),
+                        tool_calls: None,
+                        function_call: None,
+                        audio: None,
+                        refusal: None,
+                    },
+                )
+            }
+            (MessageRole::User, MessageContent::Image(images)) => {
+                let image_parts: Vec<ChatCompletionRequestUserMessageContentPart> = images
+                    .iter()
+                    .map(|img| {
+                        ChatCompletionRequestUserMessageContentPart::ImageUrl(
+                            ChatCompletionRequestMessageContentPartImage {
+                                image_url: OpenAIImageUrl {
+                                    url: img.url.clone(),
+                                    detail: img.detail.as_ref().map(|d| match d.as_str() {
+                                        "high" => async_openai::types::ImageDetail::High,
+                                        "low" => async_openai::types::ImageDetail::Low,
+                                        _ => async_openai::types::ImageDetail::Auto,
+                                    }),
+                                },
+                            },
+                        )
+                    })
+                    .collect();
+
+                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                    content: ChatCompletionRequestUserMessageContent::Array(image_parts),
+                    name: message.name.clone(),
+                })
+            }
+            (MessageRole::User, MessageContent::Mixed(parts)) => {
+                let content_parts: Vec<ChatCompletionRequestUserMessageContentPart> = parts
+                    .iter()
+                    .map(|part| match part {
+                        crate::openai::types::ContentPart::Text(text) => {
+                            ChatCompletionRequestUserMessageContentPart::Text(
+                                async_openai::types::ChatCompletionRequestMessageContentPartText {
+                                    text: text.clone(),
+                                },
+                            )
+                        }
+                        crate::openai::types::ContentPart::Image(img) => {
+                            ChatCompletionRequestUserMessageContentPart::ImageUrl(
+                                ChatCompletionRequestMessageContentPartImage {
+                                    image_url: OpenAIImageUrl {
+                                        url: img.url.clone(),
+                                        detail: img.detail.as_ref().map(|d| match d.as_str() {
+                                            "high" => async_openai::types::ImageDetail::High,
+                                            "low" => async_openai::types::ImageDetail::Low,
+                                            _ => async_openai::types::ImageDetail::Auto,
+                                        }),
+                                    },
+                                },
+                            )
+                        }
+                    })
+                    .collect();
+
+                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                    content: ChatCompletionRequestUserMessageContent::Array(content_parts),
+                    name: message.name.clone(),
+                })
+            }
+            _ => {
+                // Fallback for unsupported combinations
+                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                    content: ChatCompletionRequestUserMessageContent::Text(
+                        "Unsupported message format".to_string(),
+                    ),
+                    name: message.name.clone(),
+                })
+            }
+        }
+    }
+
+    fn convert_response_to_chat_completion(
+        &self,
+        response: async_openai::types::CreateChatCompletionResponse,
+    ) -> ChatCompletion {
+        ChatCompletion {
+            choices: response
+                .choices
+                .into_iter()
+                .map(|choice| crate::openai::types::Choice {
+                    message: Message {
+                        role: match choice.message.role {
+                            async_openai::types::Role::System => MessageRole::System,
+                            async_openai::types::Role::User => MessageRole::User,
+                            async_openai::types::Role::Assistant => MessageRole::Assistant,
+                            async_openai::types::Role::Tool => MessageRole::User, // fallback
+                            async_openai::types::Role::Function => MessageRole::User, // fallback
+                        },
+                        content: MessageContent::Text(choice.message.content.unwrap_or_default()),
+                        name: None,
+                    },
+                })
+                .collect(),
+            model: response.model,
+            usage: response.usage.map(|usage| crate::openai::types::Usage {
+                prompt_tokens: usage.prompt_tokens,
+                completion_tokens: usage.completion_tokens,
+                total_tokens: usage.total_tokens,
+            }),
         }
     }
 }
@@ -57,29 +179,12 @@ impl OpenAIService {
 impl AIService for OpenAIService {
     async fn completion(
         &self,
-        messages: Vec<OpenAIMessage>,
+        messages: Vec<Message>,
         model: OpenAIModel,
     ) -> Result<ChatCompletion, Error> {
         let request_messages: Vec<ChatCompletionRequestMessage> = messages
             .iter()
-            .map(|msg| match msg.role.as_str() {
-                "system" => {
-                    ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
-                        content: ChatCompletionRequestSystemMessageContent::Text(
-                            msg.content.clone(),
-                        ),
-                        name: msg.name.clone(),
-                    })
-                }
-                "user" => ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
-                    content: ChatCompletionRequestUserMessageContent::Text(msg.content.clone()),
-                    name: msg.name.clone(),
-                }),
-                _ => ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
-                    content: ChatCompletionRequestUserMessageContent::Text(msg.content.clone()),
-                    name: msg.name.clone(),
-                }),
-            })
+            .map(|msg| self.convert_message_to_openai(msg))
             .collect();
 
         let request = CreateChatCompletionRequest {
@@ -95,113 +200,7 @@ impl AIService for OpenAIService {
             .await
             .map_err(|e| Error::OpenAI(e))?;
 
-        Ok(ChatCompletion {
-            choices: response
-                .choices
-                .into_iter()
-                .map(|choice| crate::openai::types::Choice {
-                    message: OpenAIMessage {
-                        role: choice.message.role.to_string(),
-                        content: choice.message.content.unwrap_or_default(),
-                        name: None,
-                    },
-                })
-                .collect(),
-            model: response.model,
-            usage: response.usage.map(|usage| crate::openai::types::Usage {
-                prompt_tokens: usage.prompt_tokens,
-                completion_tokens: usage.completion_tokens,
-                total_tokens: usage.total_tokens,
-            }),
-        })
-    }
-
-    async fn completion_image(
-        &self,
-        text_messages: Vec<OpenAIMessage>,
-        vision_messages: Vec<OpenAIImageMessage>,
-        model: OpenAIModel,
-    ) -> Result<ChatCompletion, Error> {
-        let text_messages: Vec<ChatCompletionRequestMessage> = text_messages
-            .iter()
-            .map(|msg| match msg.role.as_str() {
-                "system" => {
-                    ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
-                        content: ChatCompletionRequestSystemMessageContent::Text(
-                            msg.content.clone(),
-                        ),
-                        name: msg.name.clone(),
-                    })
-                }
-                "user" => ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
-                    content: ChatCompletionRequestUserMessageContent::Text(msg.content.clone()),
-                    name: msg.name.clone(),
-                }),
-                _ => ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
-                    content: ChatCompletionRequestUserMessageContent::Text(msg.content.clone()),
-                    name: msg.name.clone(),
-                }),
-            })
-            .collect();
-
-        let mut all_messages = text_messages;
-        for vision_msg in vision_messages {
-            let image_parts: Vec<ChatCompletionRequestUserMessageContentPart> = vision_msg
-                .content
-                .iter()
-                .map(|img| {
-                    ChatCompletionRequestUserMessageContentPart::ImageUrl(
-                        ChatCompletionRequestMessageContentPartImage {
-                            image_url: ImageUrl {
-                                url: img.url.clone(),
-                                detail: None,
-                            },
-                        },
-                    )
-                })
-                .collect();
-
-            all_messages.push(ChatCompletionRequestMessage::User(
-                ChatCompletionRequestUserMessage {
-                    content: ChatCompletionRequestUserMessageContent::Array(image_parts),
-                    name: vision_msg.name.clone(),
-                },
-            ));
-        }
-
-        let request = CreateChatCompletionRequest {
-            model: model.to_string(),
-            messages: all_messages,
-            ..Default::default()
-        };
-
-        println!(">>> Request: {:?}", request);
-        let response = self
-            .client
-            .chat()
-            .create(request)
-            .await
-            .map_err(|e| Error::OpenAI(e))?;
-
-        Ok(ChatCompletion {
-            choices: response
-                .choices
-                .into_iter()
-                .map(|choice| crate::openai::types::Choice {
-                    message: OpenAIMessage {
-                        role: choice.message.role.to_string(),
-                        content: choice.message.content.unwrap_or_default(),
-                        name: None,
-                    },
-                })
-                .collect(),
-            model: response.model,
-            usage: response.usage.map(|usage| crate::openai::types::Usage {
-                prompt_tokens: usage.prompt_tokens,
-                completion_tokens: usage.completion_tokens,
-                total_tokens: usage.total_tokens,
-            }),
-        })
+        Ok(self.convert_response_to_chat_completion(response))
     }
 
     async fn generate_image_url(&self, prompt: String) -> Result<String, Error> {

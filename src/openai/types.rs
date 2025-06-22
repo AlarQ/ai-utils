@@ -1,5 +1,75 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum MessageRole {
+    System,
+    User,
+    Assistant,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MessageContent {
+    Text(String),
+    Image(Vec<ImageUrl>),
+    Mixed(Vec<ContentPart>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ContentPart {
+    Text(String),
+    Image(ImageUrl),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Message {
+    pub role: MessageRole,
+    pub content: MessageContent,
+    pub name: Option<String>,
+}
+
+impl Message {
+    pub fn system(content: impl Into<String>) -> Self {
+        Self {
+            role: MessageRole::System,
+            content: MessageContent::Text(content.into()),
+            name: None,
+        }
+    }
+
+    pub fn user(content: impl Into<String>) -> Self {
+        Self {
+            role: MessageRole::User,
+            content: MessageContent::Text(content.into()),
+            name: None,
+        }
+    }
+
+    pub fn assistant(content: impl Into<String>) -> Self {
+        Self {
+            role: MessageRole::Assistant,
+            content: MessageContent::Text(content.into()),
+            name: None,
+        }
+    }
+
+    pub fn with_images(content: impl Into<String>, images: Vec<ImageUrl>) -> Self {
+        let mut parts = vec![ContentPart::Text(content.into())];
+        parts.extend(images.into_iter().map(ContentPart::Image));
+
+        Self {
+            role: MessageRole::User,
+            content: MessageContent::Mixed(parts),
+            name: None,
+        }
+    }
+
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+}
+
+// Legacy types for backward compatibility
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OpenAIMessage {
     pub role: String,
@@ -27,7 +97,7 @@ pub struct ChatCompletion {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Choice {
-    pub message: OpenAIMessage,
+    pub message: Message,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -45,13 +115,13 @@ pub enum OpenAiError {
     ResponseError(String),
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct OpenAIImageUrl {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ImageUrl {
     pub url: String,
     pub detail: Option<String>, // e.g., "high"
 }
 
-impl OpenAIImageUrl {
+impl ImageUrl {
     pub fn new(url: &str, detail: Option<String>) -> Self {
         Self {
             url: format!("data:image/png;base64,{}", url),
@@ -60,13 +130,15 @@ impl OpenAIImageUrl {
     }
 }
 
+// Legacy type for backward compatibility
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OpenAIImageMessage {
     pub role: String,
-    pub content: Vec<OpenAIImageUrl>,
+    pub content: Vec<ImageUrl>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ImageType {
     #[serde(rename = "url")]
@@ -94,8 +166,7 @@ pub enum OpenAIModel {
     Gpt41,
     #[serde(rename = "text-embedding-3-large")]
     TextEmbedding3Large,
-    #[serde(rename = "ft:gpt-4.1-mini-2025-04-14:alarqai:my-validated-data:BgbHnf3n")]
-    MyValidatedDataModel,
+    Custom(String),
 }
 
 impl std::fmt::Display for OpenAIModel {
@@ -106,7 +177,7 @@ impl std::fmt::Display for OpenAIModel {
             OpenAIModel::Gpt4oTranscribe => write!(f, "gpt-4o-transcribe"),
             OpenAIModel::Gpt41 => write!(f, "gpt-4.1"),
             OpenAIModel::TextEmbedding3Large => write!(f, "text-embedding-3-large"),
-            OpenAIModel::MyValidatedDataModel => write!(f, "ft:gpt-4.1-mini-2025-04-14:alarqai:my-validated-data:BgbHnf3n"),
+            OpenAIModel::Custom(model) => write!(f, "{}", model),
         }
     }
 }
