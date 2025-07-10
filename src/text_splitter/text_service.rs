@@ -101,6 +101,7 @@ impl TextSplitter {
         }
 
         info!("Split process completed. Total chunks: {}", chunks.len());
+        println!("chunks: {:?}", chunks);
         Ok(chunks)
     }
 
