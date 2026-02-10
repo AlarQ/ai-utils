@@ -5,13 +5,15 @@ use reqwest::Client;
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::error::Error;
-use crate::langfuse::types::LangfuseConfig;
-use crate::langfuse::types::{
-    BaseEvent, GenerationCreateBody, GenerationUpdateBody, IngestionBatch, IngestionEvent,
-    IngestionResponse, IngestionUsage, OpenAIUsage, SpanCreateBody, SpanUpdateBody, TraceBody,
+use crate::{
+    error::Error,
+    langfuse::types::{
+        BaseEvent, GenerationCreateBody, GenerationUpdateBody, IngestionBatch, IngestionEvent,
+        IngestionResponse, IngestionUsage, LangfuseConfig, OpenAIUsage, SpanCreateBody,
+        SpanUpdateBody, TraceBody,
+    },
+    openai::{ChatCompletion, OpenAIMessage},
 };
-use crate::openai::{ChatCompletion, OpenAIMessage};
 
 pub struct LangfuseServiceImpl {
     config: LangfuseConfig,

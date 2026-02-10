@@ -199,10 +199,10 @@ impl ImageFormat {
         }
     }
 
-    pub fn to_image_format(&self) -> image::ImageOutputFormat {
+    pub fn to_image_format(&self) -> image::ImageFormat {
         match self {
-            ImageFormat::Png => image::ImageOutputFormat::Png,
-            ImageFormat::WebP => image::ImageOutputFormat::WebP,
+            ImageFormat::Png => image::ImageFormat::Png,
+            ImageFormat::WebP => image::ImageFormat::WebP,
         }
     }
 }

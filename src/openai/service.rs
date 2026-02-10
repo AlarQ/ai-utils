@@ -12,9 +12,11 @@ use async_openai::{
 };
 use async_trait::async_trait;
 
-use crate::error::Error;
-use crate::openai::types::{
-    ChatCompletion, ChatOptions, Message, MessageContent, MessageRole, OpenAIModel,
+use crate::{
+    error::Error,
+    openai::types::{
+        ChatCompletion, ChatOptions, Message, MessageContent, MessageRole, OpenAIModel,
+    },
 };
 
 #[async_trait]

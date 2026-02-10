@@ -1,8 +1,7 @@
 #![allow(dead_code)]
 
 use anyhow::{Context, Result};
-use std::fs;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 use text_service::TextSplitter;
 
 mod text_service;

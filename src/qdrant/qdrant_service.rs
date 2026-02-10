@@ -10,8 +10,10 @@ use qdrant_client::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::error::Error;
-use crate::openai::{AIService, OpenAIService};
+use crate::{
+    error::Error,
+    openai::{AIService, OpenAIService},
+};
 
 pub struct QdrantService {
     client: Qdrant,

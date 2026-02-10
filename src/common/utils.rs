@@ -3,12 +3,13 @@ use futures::future::try_join_all;
 use image::GenericImageView;
 use std::io::Cursor;
 
-use super::errors::CommonError;
-use super::types::{Base64Image, ImageFormat, ImageMetadata};
+use super::{
+    errors::CommonError,
+    types::{Base64Image, ImageFormat, ImageMetadata},
+};
 
 // --- ASYNC VERSIONS ---
-use tokio::fs as async_fs;
-use tokio::io::AsyncReadExt;
+use tokio::{fs as async_fs, io::AsyncReadExt};
 
 /// Generic async function to convert a single image to base64
 pub async fn read_image_to_base64(path: &str, format: ImageFormat) -> Result<String, CommonError> {

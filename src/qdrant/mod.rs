@@ -2,8 +2,7 @@ pub mod qdrant_service;
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-    use std::time::Duration;
+    use std::{env, time::Duration};
 
     use qdrant_client::Qdrant;
 
