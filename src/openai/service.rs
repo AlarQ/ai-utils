@@ -1,12 +1,17 @@
 use async_openai::{
     config::OpenAIConfig,
     types::{
-        AudioInput, ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage,
-        ChatCompletionRequestSystemMessage, ChatCompletionRequestSystemMessageContent,
-        ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent,
-        ChatCompletionRequestUserMessageContentPart, CreateChatCompletionRequest,
-        CreateEmbeddingRequestArgs, CreateImageRequestArgs, CreateTranscriptionRequestArgs, Image,
-        ImageResponseFormat, ImageSize, ImageUrl as OpenAIImageUrl,
+        audio::{AudioInput, CreateTranscriptionRequest, CreateTranscriptionRequestArgs},
+        chat::{
+            ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage,
+            ChatCompletionRequestMessageContentPartText, ChatCompletionRequestSystemMessage,
+            ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessage,
+            ChatCompletionRequestUserMessageContent, ChatCompletionRequestUserMessageContentPart,
+            CreateChatCompletionRequest, CreateChatCompletionResponse, ImageDetail,
+            ImageUrl as OpenAIImageUrl, Role, StopConfiguration,
+        },
+        embeddings::CreateEmbeddingRequestArgs,
+        images::{CreateImageRequestArgs, Image, ImageResponseFormat, ImageSize},
     },
     Client,
 };
@@ -105,10 +110,10 @@ impl OpenAIService {
                             ChatCompletionRequestMessageContentPartImage {
                                 image_url: OpenAIImageUrl {
                                     url: img.url.clone(),
-                                    detail: img.detail.as_ref().map(|d| match d.as_str() {
-                                        "high" => async_openai::types::ImageDetail::High,
-                                        "low" => async_openai::types::ImageDetail::Low,
-                                        _ => async_openai::types::ImageDetail::Auto,
+                                        detail: img.detail.as_ref().map(|d| match d.as_str() {
+                                        "high" => ImageDetail::High,
+                                        "low" => ImageDetail::Low,
+                                        _ => ImageDetail::Auto,
                                     }),
                                 },
                             },
@@ -127,7 +132,7 @@ impl OpenAIService {
                     .map(|part| match part {
                         crate::openai::types::ContentPart::Text(text) => {
                             ChatCompletionRequestUserMessageContentPart::Text(
-                                async_openai::types::ChatCompletionRequestMessageContentPartText {
+                                ChatCompletionRequestMessageContentPartText {
                                     text: text.clone(),
                                 },
                             )
@@ -138,9 +143,9 @@ impl OpenAIService {
                                     image_url: OpenAIImageUrl {
                                         url: img.url.clone(),
                                         detail: img.detail.as_ref().map(|d| match d.as_str() {
-                                            "high" => async_openai::types::ImageDetail::High,
-                                            "low" => async_openai::types::ImageDetail::Low,
-                                            _ => async_openai::types::ImageDetail::Auto,
+                                            "high" => ImageDetail::High,
+                                            "low" => ImageDetail::Low,
+                                            _ => ImageDetail::Auto,
                                         }),
                                     },
                                 },
@@ -165,7 +170,7 @@ impl OpenAIService {
 
     fn convert_response_to_chat_completion(
         &self,
-        response: async_openai::types::CreateChatCompletionResponse,
+        response: CreateChatCompletionResponse,
     ) -> ChatCompletion {
         ChatCompletion {
             choices: response
@@ -174,11 +179,11 @@ impl OpenAIService {
                 .map(|choice| crate::openai::types::Choice {
                     message: Message {
                         role: match choice.message.role {
-                            async_openai::types::Role::System => MessageRole::System,
-                            async_openai::types::Role::User => MessageRole::User,
-                            async_openai::types::Role::Tool => MessageRole::User, // fallback
-                            async_openai::types::Role::Function => MessageRole::User, // fallback
-                            _ => MessageRole::User, // fallback for any other roles
+                            Role::System => MessageRole::System,
+                            Role::User => MessageRole::User,
+                            Role::Tool => MessageRole::User, // fallback
+                            Role::Function => MessageRole::User, // fallback
+                            _ => MessageRole::User,          // fallback for any other roles
                         },
                         content: MessageContent::Text(choice.message.content.unwrap_or_default()),
                         name: None,
@@ -242,10 +247,10 @@ impl OpenAIService {
             request.top_p = Some(top_p);
         }
         if let Some(stop) = options.stop {
-            request.stop = Some(async_openai::types::Stop::StringArray(stop));
+            request.stop = Some(StopConfiguration::StringArray(stop));
         }
         if let Some(user) = options.user {
-            request.user = Some(user);
+            request.safety_identifier = Some(user);
         }
 
         let response = self
@@ -346,7 +351,7 @@ impl AIService for OpenAIService {
         let response = self
             .client
             .images()
-            .create(request)
+            .generate(request)
             .await
             .map_err(|e| Error::OpenAI(e))?;
 
@@ -367,16 +372,16 @@ impl AIService for OpenAIService {
             ));
         }
 
-        let request: async_openai::types::CreateTranscriptionRequest =
-            CreateTranscriptionRequestArgs::default()
-                .file(AudioInput::from_vec_u8("audio.mp3".to_string(), audio))
-                .model(OpenAIModel::Gpt4oTranscribe.to_string())
-                .build()?;
+        let request: CreateTranscriptionRequest = CreateTranscriptionRequestArgs::default()
+            .file(AudioInput::from_vec_u8("audio.mp3".to_string(), audio))
+            .model(OpenAIModel::Gpt4oTranscribe.to_string())
+            .build()?;
 
         let response = self
             .client
             .audio()
-            .transcribe(request)
+            .transcription()
+            .create(request)
             .await
             .map_err(|e| Error::OpenAI(e))?;
 
