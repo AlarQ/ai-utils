@@ -1,5 +1,6 @@
 use std::{collections::HashMap, env};
 
+use async_trait::async_trait;
 use qdrant_client::{
     qdrant::{
         CreateCollectionBuilder, Distance, PointStruct, SearchParamsBuilder, SearchPointsBuilder,
@@ -10,14 +11,21 @@ use qdrant_client::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{
-    error::Error,
-    openai::{AIService, OpenAIService},
-};
+use crate::error::Error;
+
+/// Trait for embedding services that can generate vector embeddings
+#[async_trait]
+pub trait EmbeddingService: Send + Sync {
+    /// Embed a single text into a vector
+    async fn embed(&self, text: String) -> crate::Result<Vec<f32>>;
+
+    /// Embed multiple texts into vectors
+    async fn embed_batch(&self, texts: Vec<String>) -> crate::Result<Vec<Vec<f32>>>;
+}
 
 pub struct QdrantService {
     client: Qdrant,
-    openai_service: OpenAIService,
+    embedding_service: Box<dyn EmbeddingService>,
 }
 
 impl QdrantService {
@@ -30,11 +38,32 @@ impl QdrantService {
         let client = Qdrant::from_url(&url)
             .api_key(api_key)
             .build()
-            .map_err(|e| Error::Other(format!("Failed to create Qdrant client: {}", e)))?;
+            .map_err(|e| Error::Other(format!("Failed to create Qdrant client: {e}")))?;
+
+        // Use OpenRouterService by default for embeddings
+        let openrouter = crate::openrouter::OpenRouterService::new()?;
 
         Ok(Self {
             client,
-            openai_service: OpenAIService::new()?,
+            embedding_service: Box::new(openrouter),
+        })
+    }
+
+    /// Create QdrantService with a custom embedding service
+    pub fn with_embedding_service(service: Box<dyn EmbeddingService>) -> Result<Self, Error> {
+        let url = env::var("QDRANT_URL")
+            .map_err(|_| Error::Config("QDRANT_URL must be set".to_string()))?;
+        let api_key = env::var("QDRANT_API_KEY")
+            .map_err(|_| Error::Config("QDRANT_API_KEY must be set".to_string()))?;
+
+        let client = Qdrant::from_url(&url)
+            .api_key(api_key)
+            .build()
+            .map_err(|e| Error::Other(format!("Failed to create Qdrant client: {e}")))?;
+
+        Ok(Self {
+            client,
+            embedding_service: service,
         })
     }
 
@@ -66,20 +95,25 @@ impl QdrantService {
         &self,
         collection_name: &str,
         point: PointInput,
-    ) -> Result<(), QdrantError> {
-        let vector = self.openai_service.embed(point.text.clone()).await.unwrap();
+    ) -> Result<(), Error> {
+        let vector = self.embedding_service.embed(point.text.clone()).await?;
 
-        let payload: Payload = json!(point).as_object().unwrap().clone().into();
+        let payload: Payload = json!(point)
+            .as_object()
+            .ok_or_else(|| Error::Other("Failed to convert point to JSON object".to_string()))?
+            .clone()
+            .into();
 
-        let points = vec![PointStruct::new(
-            point.id.parse::<u64>().unwrap(),
-            vector,
-            payload,
-        )];
+        let point_id = point
+            .id
+            .parse::<u64>()
+            .map_err(|e| Error::Other(format!("Invalid point ID '{}': {e}", point.id)))?;
+        let points = vec![PointStruct::new(point_id, vector, payload)];
 
         self.client
             .upsert_points(UpsertPointsBuilder::new(collection_name, points))
-            .await?;
+            .await
+            .map_err(|e| Error::Other(format!("Failed to upsert points: {e}")))?;
 
         Ok(())
     }
@@ -87,7 +121,7 @@ impl QdrantService {
         &self,
         collection_name: &str,
         points: Vec<PointInput>,
-    ) -> Result<(), QdrantError> {
+    ) -> Result<(), Error> {
         for point in points {
             self.upsert_point(collection_name, point).await?;
         }
@@ -100,8 +134,8 @@ impl QdrantService {
         collection_name: String,
         query: String,
         limit: u64,
-    ) -> Result<Vec<QueryOutput>, QdrantError> {
-        let vector = self.openai_service.embed(query.clone()).await.unwrap();
+    ) -> Result<Vec<QueryOutput>, Error> {
+        let vector = self.embedding_service.embed(query.clone()).await?;
 
         let points = self
             .client
@@ -110,8 +144,7 @@ impl QdrantService {
                     .with_payload(true)
                     .params(SearchParamsBuilder::default().hnsw_ef(128).exact(false)),
             )
-            .await
-            .unwrap()
+            .await?
             .result
             .into_iter()
             .map(|p| {

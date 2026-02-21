@@ -1,0 +1,34 @@
+{
+  "id": "refactoring",
+  "name": "ai-utils Refactoring",
+  "status": "active",
+  "objective": "Replace OpenAI with OpenRouter, Langfuse with OpenTelemetry, update Qdrant, and clean up codebase",
+  "context_files": [
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-code-quality.md",
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-testing.md",
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/code-quality.md"
+  ],
+  "reference_files": [
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/Cargo.toml",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/openai/mod.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/openai/types.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/openai/service.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/langfuse/mod.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/langfuse/types.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/langfuse/service.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/qdrant/qdrant_service.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/error/mod.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/lib.rs"
+  ],
+  "exit_criteria": [
+    "cargo build --all-features compiles clean",
+    "cargo clippy --all-features has zero warnings",
+    "cargo fmt -- --check passes",
+    "cargo test --lib passes",
+    "Old openai/ and langfuse/ directories deleted",
+    "lib.rs updated with new feature gates"
+  ],
+  "subtask_count": 6,
+  "completed_count": 0,
+  "created_at": "2026-02-20T00:00:00Z"
+}

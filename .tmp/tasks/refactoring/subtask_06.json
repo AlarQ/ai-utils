@@ -1,0 +1,41 @@
+{
+  "id": "refactoring-06",
+  "seq": "06",
+  "title": "Phase 6: Cleanup - Update lib.rs and delete old modules",
+  "description": "Final cleanup phase: update src/lib.rs with new feature gates, delete src/openai/ and src/langfuse/ directories, remove old features from Cargo.toml.",
+  "status": "completed",
+  "agent_id": "coder-agent",
+  "started_at": "2026-02-20T00:00:00Z",
+  "completed_at": "2026-02-20T20:02:35Z",
+  "depends_on": ["05"],
+  "parallel": false,
+  "suggested_agent": "CodeRefactorer",
+  "context_files": [
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-code-quality.md",
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-testing.md"
+  ],
+  "reference_files": [
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/lib.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/Cargo.toml"
+  ],
+  "acceptance_criteria": [
+    "src/lib.rs updated:",
+    "  - Remove #[cfg(feature = \"openai\")] pub mod openai;",
+    "  - Remove #[cfg(feature = \"langfuse\")] pub mod langfuse;",
+    "  - Add #[cfg(feature = \"openrouter\")] pub mod openrouter;",
+    "  - Add #[cfg(feature = \"telemetry\")] pub mod telemetry;",
+    "src/openai/ directory deleted (mod.rs, types.rs, service.rs)",
+    "src/langfuse/ directory deleted (mod.rs, types.rs, service.rs)",
+    "Cargo.toml updated:",
+    "  - Remove old openai and langfuse feature entries",
+    "  - Keep only new features: openrouter, telemetry, qdrant, text-splitter",
+    "cargo build --all-features compiles clean",
+    "cargo clippy --all-features has zero warnings",
+    "cargo fmt -- --check passes",
+    "cargo test --lib passes"
+  ],
+  "deliverables": [
+    "src/lib.rs",
+    "Cargo.toml"
+  ]
+}

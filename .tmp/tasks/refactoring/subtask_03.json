@@ -1,0 +1,32 @@
+{
+  "id": "refactoring-03",
+  "seq": "03",
+  "title": "Phase 3: Update Error module with renamed variants",
+  "description": "Update src/error/mod.rs to rename variants for new module names and remove obsolete variants. OpenAI becomes OpenRouter, Langfuse becomes Telemetry.",
+  "status": "completed",
+  "agent_id": "coder-agent",
+  "started_at": "2026-02-20T00:00:00Z",
+  "completed_at": "2026-02-20T00:15:00Z",
+  "depends_on": ["02"],
+  "parallel": false,
+  "suggested_agent": "CodeRefactorer",
+  "context_files": [
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-code-quality.md",
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-testing.md"
+  ],
+  "reference_files": [
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/error/mod.rs"
+  ],
+  "acceptance_criteria": [
+    "OpenAI variant renamed to OpenRouter(#[from] async_openai::error::OpenAIError)",
+    "OpenAIValidation renamed to Validation(String)",
+    "OpenAIRateLimited renamed to RateLimited { retry_after: Option<Duration> }",
+    "OpenAIMissingParameter renamed to MissingParameter { param: String }",
+    "OpenAIUnsupportedModel variant removed",
+    "Langfuse variant renamed to Telemetry(String)",
+    "InvalidHeader variant added with #[from] reqwest::header::InvalidHeaderValue"
+  ],
+  "deliverables": [
+    "src/error/mod.rs"
+  ]
+}

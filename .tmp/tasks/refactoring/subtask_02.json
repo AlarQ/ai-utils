@@ -1,0 +1,40 @@
+{
+  "id": "refactoring-02",
+  "seq": "02",
+  "title": "Phase 2: Create OpenRouter module (src/openrouter/)",
+  "description": "Create new OpenRouter module to replace OpenAI. Implements AIService trait with OpenRouter API support using async-openai with custom base URL. Includes types.rs, service.rs, and mod.rs.",
+  "status": "completed",
+  "agent_id": "coder-agent",
+  "started_at": "2025-02-20T00:00:00Z",
+  "completed_at": "2025-02-20T00:00:00Z",
+  "depends_on": ["01"],
+  "parallel": false,
+  "suggested_agent": "CodeRefactorer",
+  "context_files": [
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-code-quality.md",
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-testing.md"
+  ],
+  "reference_files": [
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/openai/types.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/openai/service.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/openai/mod.rs"
+  ],
+  "acceptance_criteria": [
+    "ModelId newtype created with well-known constants (GPT_4O, CLAUDE_SONNET_4, etc.)",
+    "Message, MessageRole, MessageContent types preserved from openai",
+    "ChatRequestBuilder adapted for OpenRouter",
+    "OpenRouterOptions struct added for provider preferences",
+    "ModelInfo and KeyInfo types added",
+    "OpenRouterService struct implements AIService trait",
+    "chat(), embed(), embed_batch(), list_models(), key_info() methods implemented",
+    "Environment variables read: OPENROUTER_API_KEY (required), OPENROUTER_SITE_URL, OPENROUTER_SITE_NAME (optional)",
+    "HTTP headers set: HTTP-Referer, X-Title",
+    "Glob re-exports in mod.rs",
+    "Integration tests with early return when OPENROUTER_API_KEY missing"
+  ],
+  "deliverables": [
+    "src/openrouter/types.rs",
+    "src/openrouter/service.rs",
+    "src/openrouter/mod.rs"
+  ]
+}

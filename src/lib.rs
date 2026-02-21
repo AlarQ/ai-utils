@@ -8,11 +8,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub mod common;
 pub mod error;
 
-#[cfg(feature = "langfuse")]
-pub mod langfuse;
+#[cfg(feature = "telemetry")]
+pub mod telemetry;
 
-#[cfg(feature = "openai")]
-pub mod openai;
+#[cfg(feature = "openrouter")]
+pub mod openrouter;
 
 #[cfg(feature = "qdrant")]
 pub mod qdrant;

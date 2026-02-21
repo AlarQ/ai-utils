@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["openai", "qdrant", "langfuse", "text-splitter"]
-openai = ["async-openai"]
-qdrant = ["qdrant-client"]
-langfuse = []
+default = ["openrouter", "qdrant", "telemetry", "text-splitter"]
+openrouter = ["async-openai"]
+telemetry = ["opentelemetry", "opentelemetry_sdk", "opentelemetry-otlp", "tracing-opentelemetry", "tracing-subscriber"]
+qdrant = ["qdrant-client", "openrouter"]
 text-splitter = ["tiktoken-rs"]
-full = ["openai", "qdrant", "langfuse", "text-splitter"]
+full = ["openrouter", "qdrant", "telemetry", "text-splitter"]
 
 [dependencies]
 tokio = { version = "1.49.0", features = ["full"] }
@@ -30,8 +30,14 @@ clap = { version = "4.5.59", features = ["derive"] }
 regex = "1.12.3"
 tiktoken-rs = { version = "0.9.1", optional = true }
 anyhow = "1.0.101"
-tracing = "0.1.44" 
-tracing-subscriber = "0.3.22"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3", features = ["registry"], optional = true }
 env_logger = "0.11.8"
 qdrant-client = { version = "1.16.0", optional = true }
 dotenv = "0.15.0"
+
+# OpenTelemetry dependencies
+opentelemetry = { version = "0.28", optional = true }
+opentelemetry_sdk = { version = "0.28", features = ["rt-tokio"], optional = true }
+opentelemetry-otlp = { version = "0.28", features = ["http-proto"], optional = true }
+tracing-opentelemetry = { version = "0.29", optional = true }
