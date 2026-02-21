@@ -1,4 +1,6 @@
-pub mod qdrant_service;
+mod qdrant_service;
+
+pub use qdrant_service::*;
 
 #[cfg(test)]
 mod tests {
@@ -10,8 +12,14 @@ mod tests {
     async fn test() {
         dotenv::dotenv().ok();
 
-        let url = env::var("QDRANT_URL").unwrap();
-        let api_key = env::var("QDRANT_API_KEY").unwrap();
+        let Ok(url) = env::var("QDRANT_URL") else {
+            println!("Skipping test: QDRANT_URL not set");
+            return;
+        };
+        let Ok(api_key) = env::var("QDRANT_API_KEY") else {
+            println!("Skipping test: QDRANT_API_KEY not set");
+            return;
+        };
 
         println!("Connecting to Qdrant at URL: {}", url);
         println!("Using API key: {}", api_key);

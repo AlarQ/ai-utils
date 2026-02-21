@@ -1,0 +1,38 @@
+{
+  "id": "refactoring-04",
+  "seq": "04",
+  "title": "Phase 4: Create Telemetry module (src/telemetry/)",
+  "description": "Create new Telemetry module to replace Langfuse using OpenTelemetry. Implements OTEL pipeline with OTLP HTTP exporter and tracing integration.",
+  "status": "completed",
+  "agent_id": "coder-agent",
+  "started_at": "2025-02-20T00:00:00Z",
+  "completed_at": "2025-02-20T00:30:00Z",
+  "depends_on": ["03"],
+  "parallel": false,
+  "suggested_agent": "CodeRefactorer",
+  "context_files": [
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-code-quality.md",
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-testing.md"
+  ],
+  "reference_files": [
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/langfuse/types.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/langfuse/service.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/langfuse/mod.rs"
+  ],
+  "acceptance_criteria": [
+    "TelemetryConfig struct with endpoint, service_name, auth_header fields",
+    "TelemetryConfig::from_env() reads OTEL_EXPORTER_OTLP_ENDPOINT (required), OTEL_SERVICE_NAME (optional, default 'ai-utils'), LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY (optional for auth)",
+    "TelemetryGuard struct for graceful shutdown",
+    "init_telemetry(config) builds OTLP HTTP exporter, TracerProvider, and tracing-opentelemetry layer",
+    "llm_span(operation, model) helper creates LLM-annotated tracing spans",
+    "No Langfuse-specific types - uses standard tracing macros",
+    "TelemetryGuard::shutdown() flushes spans on exit",
+    "Glob re-exports in mod.rs",
+    "Unit tests with in-memory/no-op exporter"
+  ],
+  "deliverables": [
+    "src/telemetry/types.rs",
+    "src/telemetry/service.rs",
+    "src/telemetry/mod.rs"
+  ]
+}

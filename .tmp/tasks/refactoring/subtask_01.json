@@ -1,0 +1,30 @@
+{
+  "id": "refactoring-01",
+  "seq": "01",
+  "title": "Phase 1: Add OTEL dependencies and update feature flags in Cargo.toml",
+  "description": "Update Cargo.toml with new OpenTelemetry dependencies and feature flags. Keep old openai/langfuse features temporarily for backward compatibility during transition.",
+  "status": "completed",
+  "agent_id": "coder-agent",
+  "started_at": "2025-02-20T00:00:00Z",
+  "completed_at": "2025-02-20T00:00:00Z",
+  "depends_on": [],
+  "parallel": false,
+  "suggested_agent": "CodeRefactorer",
+  "context_files": [
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-code-quality.md",
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-testing.md"
+  ],
+  "reference_files": [
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/Cargo.toml"
+  ],
+  "acceptance_criteria": [
+    "OTEL dependencies added (opentelemetry 0.28, opentelemetry_sdk 0.28, opentelemetry-otlp 0.28, tracing-opentelemetry 0.29, tracing-subscriber 0.3)",
+    "Feature flags updated: openrouter, telemetry, updated qdrant feature",
+    "Default features set to: [\"openrouter\", \"qdrant\", \"telemetry\", \"text-splitter\"]",
+    "Old openai and langfuse features preserved for Phase 6",
+    "Full feature includes all new features"
+  ],
+  "deliverables": [
+    "Cargo.toml"
+  ]
+}

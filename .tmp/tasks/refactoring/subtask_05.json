@@ -1,0 +1,36 @@
+{
+  "id": "refactoring-05",
+  "seq": "05",
+  "title": "Phase 5: Update Qdrant module with decoupling and unwrap fixes",
+  "description": "Update src/qdrant/qdrant_service.rs to decouple from OpenAI by using a generic EmbeddingService trait, fix all .unwrap() calls with proper error propagation.",
+  "status": "completed",
+  "agent_id": "coder-agent",
+  "started_at": "2026-02-20T00:00:00Z",
+  "completed_at": "2026-02-20T00:00:00Z",
+  "depends_on": ["04"],
+  "parallel": false,
+  "suggested_agent": "CodeRefactorer",
+  "context_files": [
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-code-quality.md",
+    "/Users/ernestbednarczyk/.config/opencode/context/core/standards/rust/rust-testing.md"
+  ],
+  "reference_files": [
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/qdrant/qdrant_service.rs",
+    "/Users/ernestbednarczyk/Desktop/projects/ai-utils/src/openrouter/service.rs"
+  ],
+  "acceptance_criteria": [
+    "EmbeddingService trait defined with embed(text) and embed_batch(texts) methods",
+    "OpenRouterService implements EmbeddingService",
+    "QdrantService uses Box<dyn EmbeddingService> instead of direct OpenAI dependency",
+    "QdrantService::new() uses OpenRouterService by default",
+    "QdrantService::with_embedding_service() allows custom embedding service",
+    "All 5 .unwrap() calls replaced with ? error propagation:",
+    "  - openai_service.embed() → embedding_service.embed().await?",
+    "  - .as_object().unwrap() → .as_object().ok_or_else()?",
+    "  - point.id.parse::<u64>().unwrap() → .parse().map_err()?",
+    "  - Search points .await.unwrap() → .await?"
+  ],
+  "deliverables": [
+    "src/qdrant/qdrant_service.rs"
+  ]
+}
